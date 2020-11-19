@@ -1,8 +1,7 @@
 (ns golf.core
   (:require
    [day8.re-frame.http-fx]
-   [reagent.dom :as rdom]
-   [reagent.core :as r :refer [atom]]
+   [reagent.dom :as dom]
    [re-frame.core :as rf]
    [goog.events :as events]
    [goog.history.EventType :as HistoryEventType]
@@ -10,75 +9,12 @@
    [golf.ajax :as ajax]
    [golf.events]
    [golf.subs]
-   [golf.websockets :as ws]
+   [golf.views :as views]
+   [golf.websocket :as ws]
    [reitit.core :as reitit]
    [reitit.frontend.easy :as rfe]
    [clojure.string :as string])
   (:import goog.History))
-
-(defonce messages (atom []))
-
-(defn message-list []
-  [:ul
-   [:h4 "message list"]
-   (for [[i message] (map-indexed vector @messages)]
-     ^{:key i}
-     [:li message])])
-
-(defn message-input []
-  (let [value (atom nil)]
-    (fn []
-      [:input.form-control
-       {:type :text
-        :placeholder "enter message here"
-        :value @value
-        :on-change #(reset! value (-> % .-target .-value))
-        :on-key-down #(when (= (.-keyCode %) 13)
-                        (ws/send-transit-msg! {:message @value})
-                        (reset! value nil))}])))
-
-(defn update-messages! [{:keys [message]}]
-  (swap! messages #(vec (take 10 (conj % message)))))
-
-(defn nav-link [uri title page]
-  [:a.navbar-item
-   {:href   uri
-    :class (when (= page @(rf/subscribe [:common/page])) :is-active)}
-   title])
-
-(defn navbar [] 
-  (r/with-let [expanded? (r/atom false)]
-    [:nav.navbar.is-info>div.container
-     [:div.navbar-brand
-      [:a.navbar-item {:href "/" :style {:font-weight :bold}} "golf"]
-      [:span.navbar-burger.burger
-       {:data-target :nav-menu
-        :on-click #(swap! expanded? not)
-        :class (when @expanded? :is-active)}
-       [:span][:span][:span]]]
-     [:div#nav-menu.navbar-menu
-      {:class (when @expanded? :is-active)}
-      [:div.navbar-start
-       [nav-link "#/" "Home" :home]
-       [nav-link "#/about" "About" :about]]]]))
-
-(defn about-page []
-  [:section.section>div.container>div.content
-   [:img {:src "/img/warning_clojure.png"}]])
-
-(defn home-page []
-  [:section.section>div.container>div.content
-   [:p "hello home page"]
-   [message-list]
-   [message-input]
-   #_(when-let [docs @(rf/subscribe [:docs])]
-     [:div {:dangerouslySetInnerHTML {:__html (md->html docs)}}])])
-
-(defn page []
-  (if-let [page @(rf/subscribe [:common/page])]
-    [:div
-     [navbar]
-     [page]]))
 
 (defn navigate! [match _]
   (rf/dispatch [:common/navigate match]))
@@ -86,10 +22,10 @@
 (def router
   (reitit/router
    [["/" {:name        :home
-          :view        #'home-page
+          :view        #'views/home-page
           :controllers [{:start (fn [_] (rf/dispatch [:page/init-home]))}]}]
     ["/about" {:name :about
-               :view #'about-page}]]))
+               :view #'views/about-page}]]))
 
 (defn start-router! []
   (rfe/start!
@@ -101,11 +37,12 @@
 ;; Initialize app
 (defn ^:dev/after-load mount-components []
   (rf/clear-subscription-cache!)
-  (rdom/render [#'page] (.getElementById js/document "app")))
+  (dom/render [#'views/page] (.getElementById js/document "app")))
 
 (defn init! []
   (start-router!)
   (ajax/load-interceptors!)
+  (rf/dispatch-sync [:initialize-db])
   (ws/make-websocket! (str "ws://" (.-host js/location) "/ws")
-                      update-messages!)
+                      ws/handle-response!)
   (mount-components))

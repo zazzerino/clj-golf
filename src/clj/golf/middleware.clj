@@ -30,7 +30,6 @@
        {:status 403
         :title "Invalid anti-forgery token"})}))
 
-
 (defn wrap-formats [handler]
   (let [wrapped (-> handler wrap-params (wrap-format formats/instance))]
     (fn [request]

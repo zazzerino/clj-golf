@@ -4,7 +4,7 @@
     [golf.layout :refer [error-page]]
     [golf.routes.home :refer [home-routes]]
     [golf.routes.services :refer [service-routes]]
-    [golf.routes.websockets :refer [websocket-routes]]
+    [golf.routes.websocket :refer [websocket-routes]]
     [reitit.swagger-ui :as swagger-ui]
     [reitit.ring :as ring]
     [ring.middleware.content-type :refer [wrap-content-type]]
@@ -22,7 +22,7 @@
     (ring/router
       [(home-routes)
        (service-routes)
-       websocket-routes])
+       (websocket-routes)])
     (ring/routes
       (swagger-ui/create-swagger-ui-handler
         {:path   "/swagger-ui"

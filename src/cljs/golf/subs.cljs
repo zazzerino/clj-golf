@@ -1,29 +1,46 @@
 (ns golf.subs
-  (:require [re-frame.core :as rf]))
+  (:require [re-frame.core :as re-frame]))
 
-(rf/reg-sub
+(re-frame/reg-sub
   :common/route
   (fn [db _]
     (-> db :common/route)))
 
-(rf/reg-sub
+(re-frame/reg-sub
   :common/page-id
   :<- [:common/route]
   (fn [route _]
     (-> route :data :name)))
 
-(rf/reg-sub
+(re-frame/reg-sub
   :common/page
   :<- [:common/route]
   (fn [route _]
     (-> route :data :view)))
 
-(rf/reg-sub
+(re-frame/reg-sub
   :docs
   (fn [db _]
     (:docs db)))
 
-(rf/reg-sub
+(re-frame/reg-sub
   :common/error
   (fn [db _]
     (:common/error db)))
+
+(re-frame/reg-sub
+  :user
+  (fn [db _]
+    (:user db)))
+
+(re-frame/reg-sub
+  :user-id
+  :<- [:user]
+  (fn [user _]
+    (:id user)))
+
+(re-frame/reg-sub
+  :user-name
+  :<- [:user]
+  (fn [user _]
+    (:name user)))
