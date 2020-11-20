@@ -63,12 +63,13 @@
 
 (defn login-form []
   (reagent/with-let
-    [value (reagent/atom nil)]
+    [name (reagent/atom nil)]
     [:div.login-form
      [:h2 "Login"]
-     [user-name-input {:value @value
-                       :on-change #(reset! value (-> % .-target .-value))}]
-     [login-button {:on-click #(websocket/send-login! {:name "Bob"})}]]))
+     [user-name-input {:value @name
+                       :on-change #(reset! name (-> % .-target .-value))}]
+     [login-button {:on-click #(if-not (nil? @name)
+                                 (websocket/send-login! {:name @name}))}]]))
 
 (defn about-page []
   [:section.section>div.container>div.content

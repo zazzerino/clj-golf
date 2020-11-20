@@ -8,40 +8,50 @@
 (def channels (atom #{}))
 (def users (atom {}))
 
-(defn uuid []
+(defn generate-uuid []
   (str (UUID/randomUUID)))
 
-(defn decode-message [msg]
-  (let [bytes (.getBytes msg)
+(defn decode-message [message]
+  (let [bytes (.getBytes message)
         in (ByteArrayInputStream. bytes)
         reader (transit/reader in :json)]
     (transit/read reader)))
 
-(defn encode-message [msg]
+(defn encode-message [message]
   (let [out (ByteArrayOutputStream.)
         writer (transit/writer out :json)]
-    (transit/write writer msg)
+    (transit/write writer message)
     (.toString out)))
 
+(defn make-user [channel name]
+  {:id (generate-uuid)
+   :channel channel
+   :name name})
+
 (defn on-open [channel]
+  (log/info "channel open:" channel)
   (swap! channels conj channel))
 
 (defn on-close [channel {:keys [code reason]}]
+  (log/info "channel closed. code:" code "reason:" reason)
+  ; remove the channel, but make sure channels keeps the same type
   (swap! channels #(into (empty %) (remove #{channel} %))))
 
-(defn on-message [channel msg]
-  (let [body (decode-message msg)]
-    (log/info "message received:" body)
-    (case (:type body)
-      (log/warn "no matching message type:" body))))
+(defn handle-login [channel message]
+  (let [name (:name message)
+        user (make-user channel name)
+        response (encode-message {:type :login
+                                  :id (:id user)
+                                  :name name})]
+    (swap! users assoc (:id user) user)
+    (async/send! channel response)))
 
-;(defn on-message [channel raw-msg]
-;  (let [msg (convert-message raw-msg)]
-;    (log/info (str "message received: " msg))
-;    (case (:type msg)
-;      :login (handle-login channel msg))
-;    ;(async/send! channel (encode-message (assoc msg :type :ok)))
-;    ))
+(defn on-message [channel raw-message]
+  (let [message (decode-message raw-message)]
+    (log/info "message received:" message)
+    (case (:type message)
+      :login (handle-login channel message)
+      (log/warn "no matching message type:" message))))
 
 ;(defn notify-clients! [msg]
 ;  (doseq [chan @channels]
