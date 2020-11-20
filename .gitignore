@@ -17,3 +17,4 @@ shadow-cljs.edn
 /node_modules
 /log
 golf_dev.db.mv.db
+golf_test.db.mv.db
