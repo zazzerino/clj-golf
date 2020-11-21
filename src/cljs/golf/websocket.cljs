@@ -29,12 +29,20 @@
   (send-transit-message! {:type :login
                           :name name}))
 
+(defn send-logout! [id]
+  (send-transit-message! {:type :logout
+                          :id id}))
+
 (defn handle-login [{:keys [id name] :as user}]
   (println (str "logging in " name))
   (re-frame/dispatch [:user/login user]))
 
+(defn handle-logout [id]
+  (println (str "user logged out: " id)))
+
 (defn handle-response [response]
   (println (str "received: " response))
   (case (:type response)
-    :login (handle-login (select-keys response [:id :name]))
+    :login-ok (handle-login (select-keys response [:id :name]))
+    :logout-ok (handle-logout (:id response))
     (println "no matching response type")))

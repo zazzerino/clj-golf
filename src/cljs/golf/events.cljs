@@ -59,6 +59,11 @@
     (assoc db :user user)))
 
 (re-frame/reg-event-db
+  :user/logout
+  (fn [db _]
+    (assoc db :user nil)))
+
+(re-frame/reg-event-db
   :toggle-navbar-expanded
   (fn [db _]
     (update-in db [:navbar-expanded?] not)))

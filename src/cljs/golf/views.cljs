@@ -26,24 +26,6 @@
        [nav-link "#/login" "Login" :login]
        [nav-link "#/about" "About" :about]]]]))
 
-#_(defn navbar []
-  (reagent/with-let
-    [expanded? (reagent/atom false)]
-    [:nav.navbar.is-info>div.container
-     [:div.navbar-brand
-      [:a.navbar-item {:href "/" :style {:font-weight :bold}} "golf"]
-      [:span.navbar-burger.burger
-       {:data-target :nav-menu
-        :on-click #(swap! expanded? not)
-        :class (when @expanded? :is-active)}
-       [:span][:span][:span]]]
-     [:div#nav-menu.navbar-menu
-      {:class (when @expanded? :is-active)}
-      [:div.navbar-start
-       [nav-link "#/" "Home" :home]
-       [nav-link "#/login" "Login" :login]
-       [nav-link "#/about" "About" :about]]]]))
-
 (defn user-name-input [{:keys [value on-change]}]
   [:div.user-name-input
    [:input {:type :text
@@ -66,9 +48,14 @@
      [login-button {:on-click #(if-not (nil? @name)
                                  (websocket/send-login! {:name @name}))}]]))
 
-(defn user-display []
-  (if-let [name @(re-frame/subscribe [:user/name])]
-    [:div.user-display (str "logged in as " name)]))
+(defn user-display [name]
+  [:div.user-display (str "Logged in as " name)])
+
+(defn logout-button [user-id]
+  [:input {:type "button"
+           :value "Logout"
+           :on-click #(do (websocket/send-logout! user-id)
+                          (re-frame/dispatch [:user/logout]))}])
 
 (defn login-page []
   [login-form])
@@ -85,4 +72,7 @@
      [navbar]
      [:section.section>div.container>div.content
       [page]
-      [user-display]]]))
+      (if-let [{:keys [id name]} @(re-frame/subscribe [:user])]
+        [:div
+         [user-display name]
+         [logout-button id]])]]))

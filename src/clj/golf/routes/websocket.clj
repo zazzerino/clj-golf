@@ -33,6 +33,9 @@
       first
       :id))
 
+(defn logout-user! [id]
+  (swap! users dissoc id))
+
 (defn on-open [channel]
   (log/info "channel open:" channel)
   (swap! channels conj channel))
@@ -41,15 +44,23 @@
   (log/info "channel closed. code:" code "reason:" reason)
   (swap! channels #(into (empty %) (remove #{channel} %)))
   (if-let [user-id (get-user-id-by-channel @users channel)]
-    (swap! users dissoc user-id)))
+    (logout-user! user-id)))
 
 (defn handle-login [channel message]
   (let [name (:name message)
         user (make-user channel name)
-        response (encode-message {:type :login
+        response (encode-message {:type :login-ok
                                   :id (:id user)
                                   :name name})]
     (swap! users assoc (:id user) user)
+    (async/send! channel response)))
+
+(defn handle-logout [channel message]
+  (let [id (:id message)
+        response (encode-message {:type :logout-ok
+                                  :id id})]
+    (log/info "logging out:" id)
+    (logout-user! id)
     (async/send! channel response)))
 
 (defn on-message [channel raw-message]
@@ -57,6 +68,7 @@
     (log/info "message received:" message)
     (case (:type message)
       :login (handle-login channel message)
+      :logout (handle-logout channel message)
       (log/warn "no matching message type:" message))))
 
 ;(defn notify-clients! [msg]
