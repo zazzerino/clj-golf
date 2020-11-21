@@ -60,8 +60,9 @@
         (assoc :deck deck))))
 
 (defn deal-starting-hands [game]
-  (let [hand-size 6]
-    (loop [cards-remaining (* hand-size (count (:players game)))
+  (let [hand-size 6
+        num-players (count (:players game))]
+    (loop [cards-remaining (* hand-size num-players)
            player-ids (cycle (keys (:players game)))
            game game]
       (if (zero? cards-remaining)

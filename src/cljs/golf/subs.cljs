@@ -44,3 +44,8 @@
   :<- [:user]
   (fn [user _]
     (:name user)))
+
+(re-frame/reg-sub
+  :navbar-expanded?
+  (fn [db _]
+    (:navbar-expanded? db)))

@@ -5,7 +5,10 @@
 (spec/def :user/name string?)
 (spec/def ::user (spec/nilable (spec/keys :req-un [:user/id :user/name])))
 
-(spec/def ::db (spec/keys :req-un [::user]))
+(spec/def ::navbar-expanded? boolean?)
+
+(spec/def ::db (spec/keys :req-un [::user ::navbar-expanded?]))
 
 (def default-db
-  {:user nil})
+  {:user nil
+   :navbar-expanded? false})

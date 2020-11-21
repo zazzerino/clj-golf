@@ -30,30 +30,35 @@
   (fn [_ [_ url-key params query]]
     {:common/navigate-fx! [url-key params query]}))
 
-(re-frame/reg-event-db
-  :set-docs
-  (fn [db [_ docs]]
-    (assoc db :docs docs)))
+;(re-frame/reg-event-db
+;  :set-docs
+;  (fn [db [_ docs]]
+;    (assoc db :docs docs)))
 
-(re-frame/reg-event-fx
-  :fetch-docs
-  (fn [_ _]
-    {:http-xhrio {:method          :get
-                  :uri             "/docs"
-                  :response-format (ajax/raw-response-format)
-                  :on-success      [:set-docs]}}))
+;(re-frame/reg-event-fx
+;  :fetch-docs
+;  (fn [_ _]
+;    {:http-xhrio {:method          :get
+;                  :uri             "/docs"
+;                  :response-format (ajax/raw-response-format)
+;                  :on-success      [:set-docs]}}))
 
 (re-frame/reg-event-db
   :common/set-error
   (fn [db [_ error]]
     (assoc db :common/error error)))
 
-(re-frame/reg-event-fx
-  :page/init-home
-  (fn [_ _]
-    {:dispatch [:fetch-docs]}))
+;(re-frame/reg-event-fx
+;  :page/init-home
+;  (fn [_ _]
+;    {:dispatch [:fetch-docs]}))
 
 (re-frame/reg-event-db
   :user/login
   (fn [db [_ user]]
     (assoc db :user user)))
+
+(re-frame/reg-event-db
+  :toggle-navbar-expanded
+  (fn [db _]
+    (update-in db [:navbar-expanded?] not)))

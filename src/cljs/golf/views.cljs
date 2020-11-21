@@ -10,6 +10,25 @@
    title])
 
 (defn navbar []
+  (let [expanded? @(re-frame/subscribe [:navbar-expanded?])]
+    [:nav.navbar.is-info>div.container
+     [:div.navbar-brand
+      [:a.navbar-item {:href "/" :style {:font-weight :bold}} "golf"]
+      [:span.navbar-burger.burger
+       {:data-target :nav-menu
+        ;:on-click #(swap! expanded? not)
+        :on-click #(re-frame/dispatch [:toggle-navbar-expanded])
+        :class (when expanded? :is-active)
+        }
+       [:span][:span][:span]]]
+     [:div#nav-menu.navbar-menu
+      {:class (when expanded? :is-active)}
+      [:div.navbar-start
+       [nav-link "#/" "Home" :home]
+       [nav-link "#/login" "Login" :login]
+       [nav-link "#/about" "About" :about]]]]))
+
+#_(defn navbar []
   (reagent/with-let
     [expanded? (reagent/atom false)]
     [:nav.navbar.is-info>div.container

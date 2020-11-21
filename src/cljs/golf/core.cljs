@@ -39,6 +39,9 @@
   (re-frame/clear-subscription-cache!)
   (dom/render [#'views/page] (.getElementById js/document "app")))
 
+(set! js/window.onclick #(if @(re-frame/subscribe [:navbar-expanded?])
+                          (re-frame/dispatch [:toggle-navbar-expanded])))
+
 (defn init! []
   (start-router!)
   (ajax/load-interceptors!)
