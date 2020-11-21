@@ -28,14 +28,20 @@
    :channel channel
    :name name})
 
+(defn get-user-id-by-channel [users channel]
+  (-> (filter #(= channel (:channel %)) (vals users))
+      first
+      :id))
+
 (defn on-open [channel]
   (log/info "channel open:" channel)
   (swap! channels conj channel))
 
 (defn on-close [channel {:keys [code reason]}]
   (log/info "channel closed. code:" code "reason:" reason)
-  ; remove the channel, but make sure channels keeps the same type
-  (swap! channels #(into (empty %) (remove #{channel} %))))
+  (swap! channels #(into (empty %) (remove #{channel} %)))
+  (if-let [user-id (get-user-id-by-channel @users channel)]
+    (swap! users dissoc user-id)))
 
 (defn handle-login [channel message]
   (let [name (:name message)
@@ -62,8 +68,8 @@
    :on-close on-close
    :on-message on-message})
 
-(defn ws-handler [request]
+(defn websocket-handler [request]
   (async/as-channel request websocket-callbacks))
 
 (defn websocket-routes []
-  [["/ws" ws-handler]])
+  [["/ws" websocket-handler]])
