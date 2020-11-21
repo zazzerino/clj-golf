@@ -8,7 +8,7 @@
 (def channels (atom #{}))
 (def users (atom {}))
 
-(defn generate-uuid []
+(defn generate-id []
   (str (UUID/randomUUID)))
 
 (defn decode-message [message]
@@ -24,7 +24,7 @@
     (.toString out)))
 
 (defn make-user [channel name]
-  {:id (generate-uuid)
+  {:id (generate-id)
    :channel channel
    :name name})
 

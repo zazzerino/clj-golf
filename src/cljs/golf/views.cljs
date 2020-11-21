@@ -3,30 +3,6 @@
             [re-frame.core :as re-frame]
             [golf.websocket :as websocket]))
 
-;; (defonce messages (atom []))
-
-;; (defn message-list []
-;;   [:ul
-;;    [:h4 "message list"]
-;;    (for [[i message] (map-indexed vector @messages)]
-;;      ^{:key i}
-;;      [:li message])])
-
-;; (defn message-input []
-;;   (let [value (atom nil)]
-;;     (fn []
-;;       [:input.form-control
-;;        {:type :text
-;;         :placeholder "enter message here"
-;;         :value @value
-;;         :on-change #(reset! value (-> % .-target .-value))
-;;         :on-key-down #(when (= (.-keyCode %) 13)
-;;                         (ws/send-transit-msg! {:message @value})
-;;                         (reset! value nil))}])))
-
-;(defn update-messages! [{:keys [message]}]
-;  (swap! messages #(vec (take 10 (conj % message)))))
-
 (defn nav-link [uri title page]
   [:a.navbar-item
    {:href   uri
@@ -34,8 +10,9 @@
    title])
 
 (defn navbar []
-  (reagent/with-let [expanded? (reagent/atom false)]
-                    [:nav.navbar.is-info>div.container
+  (reagent/with-let
+    [expanded? (reagent/atom false)]
+    [:nav.navbar.is-info>div.container
      [:div.navbar-brand
       [:a.navbar-item {:href "/" :style {:font-weight :bold}} "golf"]
       [:span.navbar-burger.burger
@@ -47,6 +24,7 @@
       {:class (when @expanded? :is-active)}
       [:div.navbar-start
        [nav-link "#/" "Home" :home]
+       [nav-link "#/login" "Login" :login]
        [nav-link "#/about" "About" :about]]]]))
 
 (defn user-name-input [{:keys [value on-change]}]
@@ -71,20 +49,23 @@
      [login-button {:on-click #(if-not (nil? @name)
                                  (websocket/send-login! {:name @name}))}]]))
 
+(defn user-display []
+  (if-let [name @(re-frame/subscribe [:user/name])]
+    [:div.user-display (str "logged in as " name)]))
+
+(defn login-page []
+  [login-form])
+
 (defn about-page []
-  [:section.section>div.container>div.content
-   [:img {:src "/img/warning_clojure.png"}]])
+  [:img {:src "/img/warning_clojure.png"}])
 
 (defn home-page []
-  [:section.section>div.container>div.content
-   [login-form]
-   ;; [message-list]
-   ;; [message-input]
-   #_(when-let [docs @(re-frame/subscribe [:docs])]
-     [:div {:dangerouslySetInnerHTML {:__html (md->html docs)}}])])
+  [:h2 "Let's play golf."])
 
 (defn page []
   (if-let [page @(re-frame/subscribe [:common/page])]
     [:div
      [navbar]
-     [page]]))
+     [:section.section>div.container>div.content
+      [page]
+      [user-display]]]))

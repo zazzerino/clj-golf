@@ -8,7 +8,7 @@
     (is (spec/valid? ::game/deck (make-deck)))
     (is (= 52 (count (make-deck)))))
 
-  (testing "dealing cards from a deck"
+  (testing "deal cards from a deck"
     (let [deck (make-deck)
           {:keys [card deck]} (deal-card deck)]
       (is (= card {:rank :ace :suit :clubs}))
@@ -32,7 +32,7 @@
           (is (= 2 (count (:players g))))
           (is (= p2 (get (:players g) "56789")))))))
 
-  (testing "dealing cards to players"
+  (testing "deal cards to players"
     (let [player-id "a1b2c3"
           p (make-player player-id "Charlie")
           g (-> (make-game)
@@ -40,4 +40,10 @@
                 (deal-card-to-player player-id))]
       (is (= 51 (count (:deck g))))
       (is (spec/valid? :player/hand (get-in g [:players player-id :hand])))
-      (is (= {:rank :ace :suit :clubs} (first (get-in g [:players player-id :hand])))))))
+      (is (= {:rank :ace :suit :clubs} (first (get-in g [:players player-id :hand]))))))
+
+  (testing "init game"
+    (is (spec/valid? ::game/game (init-game (make-game)
+                                            [(make-player "id0" "name0")
+                                             (make-player "id1" "name1")
+                                             (make-player "id2" "name2")])))))

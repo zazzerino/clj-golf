@@ -30,11 +30,11 @@
                           :name name}))
 
 (defn handle-login [{:keys [id name] :as user}]
-  (println (str "logging in: " user))
+  (println (str "logging in " name))
   (re-frame/dispatch [:user/login user]))
 
 (defn handle-response [response]
-  (println (str response))
+  (println (str "received: " response))
   (case (:type response)
     :login (handle-login (select-keys response [:id :name]))
     (println "no matching response type")))

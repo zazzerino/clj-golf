@@ -34,13 +34,13 @@
     (:user db)))
 
 (re-frame/reg-sub
-  :user-id
+  :user/id
   :<- [:user]
   (fn [user _]
     (:id user)))
 
 (re-frame/reg-sub
-  :user-name
+  :user/name
   :<- [:user]
   (fn [user _]
     (:name user)))
