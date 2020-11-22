@@ -5,6 +5,7 @@
    [re-frame.core :as re-frame]
    [markdown.core :refer [md->html]]
    [golf.ajax :as ajax]
+   [golf.draw]
    [golf.db]
    [golf.events]
    [golf.subs]

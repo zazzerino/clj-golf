@@ -1,6 +1,7 @@
 (ns golf.views
   (:require [reagent.core :as reagent]
             [re-frame.core :as re-frame]
+            [golf.draw :as draw]
             [golf.websocket :as websocket]))
 
 (defn nav-link [uri title page]
@@ -72,6 +73,7 @@
      [navbar]
      [:section.section>div.container>div.content
       [page]
+      [draw/game-canvas]
       (if-let [{:keys [id name]} @(re-frame/subscribe [:user])]
         [:div
          [user-display name]

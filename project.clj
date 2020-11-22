@@ -73,8 +73,9 @@
      :output-to "target/test/test.js"
      :autorun true}}}
   
-  :npm-deps []
-  :npm-dev-deps [[xmlhttprequest "1.8.0"]]
+  :npm-deps [[pixi.js "5.3.3"]]
+  :npm-dev-deps [[shadow-cljs "2.11.5"]
+                 [xmlhttprequest "1.8.0"]]
 
   :profiles
   {:uberjar {:omit-source true
