@@ -5,12 +5,16 @@
 
 (def game-state (reagent/atom {}))
 
+(def width 400)
+(def height 400)
+
 (def card-width 240)
 (def card-height 336)
 (def card-scale-x 0.3)
 (def card-scale-y 0.3)
 
 (def card-files
+  ; downloaded from www.me.uk/cards, copyright Adrian Kennard
   ["img/cards/svg/1B.svg", "img/cards/svg/2J.svg", "img/cards/svg/4C.svg",
    "img/cards/svg/5H.svg", "img/cards/svg/7C.svg", "img/cards/svg/8H.svg",
    "img/cards/svg/AC.svg", "img/cards/svg/JH.svg", "img/cards/svg/QC.svg",
@@ -39,7 +43,7 @@
                        "backgroundColor" background-color}))
   ([] (make-renderer {})))
 
-(def renderer (make-renderer {:width 400 :height 400}))
+(def renderer (make-renderer {:width width :height height}))
 (def stage (pixi/Container.))
 (def loader pixi/Loader.shared)
 
@@ -77,12 +81,21 @@
   (doto (pixi/Sprite. (get-texture name))
     (-> .-scale (.set card-scale-x card-scale-y))))
 
-(defn draw-table-card [stage card-name]
-  (let [sprite (make-card-sprite card-name)]
+(defn draw-table-card [stage]
+  (let [sprite (make-card-sprite "2B")]
+    (set! sprite.x (/ width 2))
+    (set! sprite.y (/ height 2))
+    (-> sprite .-anchor (.set 0.5 0.5))
     (.addChild stage sprite)))
 
+(defn remove-children [elem]
+  (doseq [child elem.children]
+    (.removeChild elem child)))
+
 (defn draw [id renderer stage]
-  (.addChild stage (make-card-sprite "1B"))
+  (remove-children stage)
+  ;(.addChild stage (make-card-sprite "2B"))
+  (draw-table-card stage)
   (.render renderer stage)
   (attach-view id renderer))
 
