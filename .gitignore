@@ -18,3 +18,4 @@ shadow-cljs.edn
 /log
 golf_dev.db.mv.db
 golf_test.db.mv.db
+resources/public/img/cards
