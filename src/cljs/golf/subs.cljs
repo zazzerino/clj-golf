@@ -49,3 +49,14 @@
   :navbar-expanded?
   (fn [db _]
     (:navbar-expanded? db)))
+
+(re-frame/reg-sub
+  :game
+  (fn [db _]
+    (:game db)))
+
+(re-frame/reg-sub
+  :game/id
+  :<- [:game]
+  (fn [game _]
+    (:id game)))

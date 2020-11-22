@@ -30,14 +30,14 @@
    :deck (rest deck)})
 
 (defn make-player [id name]
-  {:id id
+  {:id   id
    :name name
    :hand []})
 
 (defn make-game []
-  {:id (str (UUID/randomUUID))
-   :players {}
-   :deck (make-deck)
+  {:id         (str (UUID/randomUUID))
+   :players    {}
+   :deck       (make-deck)
    :table-card nil})
 
 (defn add-player [game player]
@@ -73,10 +73,11 @@
 
 (defn deal-table-card [game]
   (let [{:keys [card deck]} (deal-card (:deck game))]
-    (assoc game :table-card card :deck deck)))
+    (assoc game :table-card card
+                :deck deck)))
 
 (defn shuffle-deck [game]
-  (assoc-in game [:deck] (shuffle (:deck game))))
+  (update-in game [:deck] shuffle))
 
 (defn init-game [game players]
   (-> game

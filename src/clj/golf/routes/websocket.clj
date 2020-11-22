@@ -1,14 +1,20 @@
 (ns golf.routes.websocket
   (:require [clojure.tools.logging :as log]
             [immutant.web.async :as async]
-            [cognitect.transit :as transit])
+            [cognitect.transit :as transit]
+            [golf.game :as game])
   (:import (java.util UUID)
            (java.io ByteArrayInputStream ByteArrayOutputStream)))
 
 (def channels (atom #{}))
 (def users (atom {}))
+(def games (atom {}))
 
-(defn generate-id []
+(defn- reset-state! []
+  (reset! users {})
+  (reset! games {}))
+
+(defn uuid []
   (str (UUID/randomUUID)))
 
 (defn decode-message [message]
@@ -24,7 +30,7 @@
     (.toString out)))
 
 (defn make-user [channel name]
-  {:id (generate-id)
+  {:id (uuid)
    :channel channel
    :name name})
 
@@ -35,6 +41,24 @@
 
 (defn logout-user! [id]
   (swap! users dissoc id))
+
+(defn create-game! []
+  (let [game (game/make-game)
+        id (:id game)]
+    (swap! games assoc id game)
+    id))
+
+(defn connect-user-to-game! [user-id game-id]
+  (let [user (-> (get @users user-id)
+                 (assoc :game-id game-id))
+        player (game/make-player user-id (:name user))
+        game (-> (get @games game-id)
+                 (game/add-player player))]
+    (swap! users assoc user-id user)
+    (swap! games assoc game-id game)))
+
+(defn delete-game! [id]
+  (swap! games dissoc id))
 
 (defn on-open [channel]
   (log/info "channel open:" channel)
@@ -63,12 +87,21 @@
     (logout-user! id)
     (async/send! channel response)))
 
+(defn handle-create-game [channel message]
+  (let [user-id (:user-id message)
+        game-id (create-game!)]
+    (connect-user-to-game! user-id game-id)
+    (async/send! channel
+                 (encode-message {:type :game-created
+                                  :game (get @games game-id)}))))
+
 (defn on-message [channel raw-message]
   (let [message (decode-message raw-message)]
     (log/info "message received:" message)
     (case (:type message)
       :login (handle-login channel message)
       :logout (handle-logout channel message)
+      :create-game (handle-create-game channel message)
       (log/warn "no matching message type:" message))))
 
 ;(defn notify-clients! [msg]

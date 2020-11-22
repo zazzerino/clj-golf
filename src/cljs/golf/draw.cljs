@@ -1,17 +1,18 @@
 (ns golf.draw
   (:require ["pixi.js" :as pixi]
             [clojure.string :as string]
-            [reagent.core :as reagent]))
+            [reagent.core :as reagent]
+            [re-frame.core :as re-frame]))
 
 (def game-state (reagent/atom {}))
 
-(def width 400)
-(def height 400)
+(def width 500)
+(def height 500)
 
 (def card-width 240)
 (def card-height 336)
-(def card-scale-x 0.3)
-(def card-scale-y 0.3)
+(def card-scale-x 0.2)
+(def card-scale-y 0.2)
 
 (def card-files
   ; downloaded from www.me.uk/cards, copyright Adrian Kennard
@@ -66,10 +67,6 @@
     (load-card-texture file))
   (.load loader))
 
-(defn init-graphics [loader]
-  (load-card-textures loader)
-  (-> loader.onComplete (.add #(println "textures loaded"))))
-
 (defn attach-view [id renderer]
   (-> (.getElementById js/document id)
       (.appendChild renderer.view)))
@@ -93,19 +90,21 @@
     (.removeChild elem child)))
 
 (defn draw [id renderer stage]
-  (remove-children stage)
-  ;(.addChild stage (make-card-sprite "2B"))
+  (remove-children (js/document.getElementById id))
   (draw-table-card stage)
   (.render renderer stage)
   (attach-view id renderer))
 
-(init-graphics loader)
+(defn init-graphics [id loader renderer stage]
+  (load-card-textures loader)
+  (-> loader.onComplete (.add #(do (println "textures loaded")
+                                   (draw id renderer stage)))))
 
 (defn game-canvas []
   (let [id "game-canvas"]
     (reagent/create-class
       {:component-did-mount (fn []
-                              (draw id renderer stage)
+                              (init-graphics id loader renderer stage)
                               (println "game-canvas mounted"))
        :component-did-update (fn []
                                (draw id renderer stage)

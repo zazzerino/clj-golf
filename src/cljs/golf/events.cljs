@@ -61,9 +61,14 @@
 (re-frame/reg-event-db
   :user/logout
   (fn [db _]
-    (assoc db :user nil)))
+    (assoc db :user nil :game nil)))
 
 (re-frame/reg-event-db
   :toggle-navbar-expanded
   (fn [db _]
     (update-in db [:navbar-expanded?] not)))
+
+(re-frame/reg-event-db
+  :set-game
+  (fn [db [_ game]]
+    (assoc db :game game)))

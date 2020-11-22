@@ -47,10 +47,13 @@
      [user-name-input {:value @name
                        :on-change #(reset! name (-> % .-target .-value))}]
      [login-button {:on-click #(if-not (nil? @name)
-                                 (websocket/send-login! {:name @name}))}]]))
+                                 (websocket/send-login! @name))}]]))
 
-(defn user-display [name]
-  [:div.user-display (str "Logged in as " name)])
+(defn info-display [name]
+  [:div.info-display
+   [:p "Logged in as " name]
+   (if-let [game-id @(re-frame/subscribe [:game/id])]
+     [:p "Connected to game " game-id])])
 
 (defn logout-button [user-id]
   [:input {:type "button"
@@ -65,7 +68,9 @@
   [:img {:src "/img/warning_clojure.png"}])
 
 (defn home-page []
-  [:h2 "Let's play golf."])
+  [:div.home-page
+   [:h2 "Let's play golf."]
+   [draw/game-canvas]])
 
 (defn page []
   (if-let [page @(re-frame/subscribe [:common/page])]
@@ -73,8 +78,7 @@
      [navbar]
      [:section.section>div.container>div.content
       [page]
-      [draw/game-canvas]
       (if-let [{:keys [id name]} @(re-frame/subscribe [:user])]
         [:div
-         [user-display name]
+         [info-display name]
          [logout-button id]])]]))

@@ -11,4 +11,5 @@
 
 (def default-db
   {:user nil
-   :navbar-expanded? false})
+   :navbar-expanded? false
+   :game nil})
