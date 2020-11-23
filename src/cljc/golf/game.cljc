@@ -1,7 +1,7 @@
 (ns golf.game
   (:require [clojure.spec.alpha :as spec])
   #?(:clj (:import (java.util UUID)))
-     )
+  )
 
 (def ranks [:ace :2 :3 :4 :5 :6 :7 :8 :9 :10 :jack :queen :king])
 (def suits [:clubs :diamonds :hearts :spades])

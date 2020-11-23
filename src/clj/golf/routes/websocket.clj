@@ -6,13 +6,10 @@
   (:import (java.util UUID)
            (java.io ByteArrayInputStream ByteArrayOutputStream)))
 
-(def channels (atom #{}))
-(def users (atom {}))
-(def games (atom {}))
+(def state (atom {:users {}
+                  :games {}}))
 
-(defn- reset-state! []
-  (reset! users {})
-  (reset! games {}))
+;; websocket utils
 
 (defn uuid []
   (str (UUID/randomUUID)))
@@ -29,82 +26,110 @@
     (transit/write writer message)
     (.toString out)))
 
-(defn make-user [channel name]
-  {:id (uuid)
-   :channel channel
-   :name name})
+;; users
 
-(defn get-user-id-by-channel [users channel]
-  (-> (filter #(= channel (:channel %)) (vals users))
-      first
-      :id))
+(defn make-user
+  ([channel name]
+   {:id (uuid)
+    :channel channel
+    :name name})
+  ([channel]
+   (make-user channel "anon")))
 
-(defn logout-user! [id]
-  (swap! users dissoc id))
+(defn create-user! [user]
+  (swap! state update-in [:users] conj {(:id user) user})
+  user)
+
+(defn delete-user! [id]
+  (swap! state update-in [:users] dissoc id))
+
+(defn set-user-name! [user name]
+  (swap! state update-in [:users (:id user)] assoc :name name))
+
+(defn get-user-by-id [id]
+  (get-in @state [:users id]))
+
+(defn get-user-by-channel [channel]
+  (let [users (-> @state :users vals)]
+    (first (filter #(= channel (:channel %)) users))))
+
+;; games
 
 (defn create-game! []
-  (let [game (game/make-game)
-        id (:id game)]
-    (swap! games assoc id game)
-    id))
-
-(defn connect-user-to-game! [user-id game-id]
-  (let [user (-> (get @users user-id)
-                 (assoc :game-id game-id))
-        player (game/make-player user-id (:name user))
-        game (-> (get @games game-id)
-                 (game/add-player player))]
-    (swap! users assoc user-id user)
-    (swap! games assoc game-id game)))
+  (let [game (game/make-game)]
+    (swap! state update-in [:games] conj {(:id game) game})
+    game))
 
 (defn delete-game! [id]
-  (swap! games dissoc id))
+  (swap! state update-in [:games] dissoc id))
+
+(defn get-game-by-id [id]
+  (get-in @state [:games id]))
+
+(defn connect-user-to-game! [user-id game-id]
+  (let [user (-> (get-user-by-id user-id)
+                 (assoc :game-id game-id))
+        player (game/make-player user-id (:name user))
+        game (-> (get-game-by-id game-id)
+                 (game/add-player player))]
+    (swap! state (fn [state]
+                   (-> state
+                       (assoc-in [:users user-id] user)
+                       (assoc-in [:games game-id] game))))
+    game))
+
+;; websocket messages
 
 (defn on-open [channel]
-  (log/info "channel open:" channel)
-  (swap! channels conj channel))
+  (let [user (make-user channel)]
+    (log/info "user created:" user)
+    (create-user! user)))
 
 (defn on-close [channel {:keys [code reason]}]
-  (log/info "channel closed. code:" code "reason:" reason)
-  (swap! channels #(into (empty %) (remove #{channel} %)))
-  (if-let [user-id (get-user-id-by-channel @users channel)]
-    (logout-user! user-id)))
+  (let [user (get-user-by-channel channel)]
+    (log/info "user deleted:" user)
+    (delete-user! (:id user))))
 
-(defn handle-login [channel message]
-  (let [name (:name message)
-        user (make-user channel name)
+(defn handle-login [channel payload]
+  (let [name (:name payload)
+        user (get-user-by-channel channel)
         response (encode-message {:type :login-ok
-                                  :id (:id user)
-                                  :name name})]
-    (swap! users assoc (:id user) user)
+                                  :payload {:id (:id user)
+                                            :name name}})]
+    (log/info "logging in:" name)
+    (set-user-name! user name)
     (async/send! channel response)))
 
-(defn handle-logout [channel message]
-  (let [id (:id message)
+(defn handle-logout [channel payload]
+  (let [id (:id payload)
+        user (get-user-by-id id)
         response (encode-message {:type :logout-ok
-                                  :id id})]
+                                  :payload {:id id}})]
     (log/info "logging out:" id)
-    (logout-user! id)
+    (set-user-name! user "anon")
     (async/send! channel response)))
 
-(defn handle-create-game [channel message]
-  (let [user-id (:user-id message)
-        game-id (create-game!)]
-    (connect-user-to-game! user-id game-id)
-    (async/send! channel
-                 (encode-message {:type :game-created
-                                  :game (get @games game-id)}))))
+(defn handle-create-game [channel]
+  (let [user (get-user-by-channel channel)
+        game (create-game!)
+        game (connect-user-to-game! (:id user) (:id game))
+        response (encode-message {:type :game-created
+                                  :payload {:game game}})]
+    (log/info "user:" (:id user) "connect to game:" (:id game))
+    (async/send! channel response)))
 
 (defn on-message [channel raw-message]
-  (let [message (decode-message raw-message)]
+  (let [message (decode-message raw-message)
+        type (:type message)
+        payload (:payload message)]
     (log/info "message received:" message)
-    (case (:type message)
-      :login (handle-login channel message)
-      :logout (handle-logout channel message)
-      :create-game (handle-create-game channel message)
+    (case type
+      :login (handle-login channel payload)
+      :logout (handle-logout channel payload)
+      :create-game (handle-create-game channel)
       (log/warn "no matching message type:" message))))
 
-(defn send-game-update [channel game-id]
+#_(defn send-game-update [channel game-id]
   (async/send! channel (get @games game-id)))
 
 ;(defn notify-clients! [msg]

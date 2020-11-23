@@ -18,10 +18,10 @@
   (fn [route _]
     (-> route :data :view)))
 
-(re-frame/reg-sub
-  :docs
-  (fn [db _]
-    (:docs db)))
+;(re-frame/reg-sub
+;  :docs
+;  (fn [db _]
+;    (:docs db)))
 
 (re-frame/reg-sub
   :common/error

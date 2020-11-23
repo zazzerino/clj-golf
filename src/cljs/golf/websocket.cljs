@@ -27,31 +27,32 @@
 
 (defn send-login! [name]
   (send-transit-message! {:type :login
-                          :name name}))
+                          :payload {:name name}}))
 
 (defn send-logout! [id]
   (send-transit-message! {:type :logout
-                          :id id}))
+                          :payload {:id id}}))
 
-(defn send-create-game! [user-id]
-  (send-transit-message! {:type :create-game
-                          :user-id user-id}))
+(defn send-create-game! []
+  (send-transit-message! {:type :create-game}))
 
 (defn handle-login [{:keys [id name] :as user}]
   (println (str "logging in " name))
   (re-frame/dispatch [:user/login user]))
 
-(defn handle-logout [id]
+(defn handle-logout [{:keys [id]}]
   (println (str "user logged out: " id)))
 
-(defn handle-game-created [game]
+(defn handle-game-created [{:keys [game]}]
   (println (str "game created: " game))
   (re-frame/dispatch [:set-game game]))
 
 (defn handle-response [response]
   (println (str "received: " response))
-  (case (:type response)
-    :login-ok (handle-login (select-keys response [:id :name]))
-    :logout-ok (handle-logout (:id response))
-    :game-created (handle-game-created (:game response))
-    (println "no matching response type")))
+  (let [type (:type response)
+        payload (:payload response)]
+    (case type
+      :login-ok (handle-login payload)
+      :logout-ok (handle-logout payload)
+      :game-created (handle-game-created payload)
+      (println "no matching response type"))))
