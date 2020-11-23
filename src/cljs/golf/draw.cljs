@@ -87,18 +87,19 @@
 (defn get-texture [name]
   (-> (aget loader.resources name) .-texture))
 
-(defn set-pos [sprite {:keys [x y]}]
+(defn set-pos [sprite {:keys [x y angle] :or {x 0 y 0 angle 0}}]
   (set! sprite.x x)
   (set! sprite.y y)
+  (set! sprite.angle angle)
   sprite)
 
-(defn make-card-sprite [name {:keys [x y] :or {x 0 y 0}}]
+(defn make-card-sprite [name {:keys [x y angle] :or {x 0 y 0 angle 0}}]
   (doto (pixi/Sprite. (get-texture name))
-    (set-pos {:x x :y y})
+    (set-pos {:x x :y y :angle angle})
     (-> .-scale (.set card-scale-x card-scale-y))))
 
-(defn make-hand-container [cards {:keys [x y x-spacing y-spacing]
-                                  :or {x 0 y 0 x-spacing 5 y-spacing 5}}]
+(defn make-hand-container [cards {:keys [x y x-spacing y-spacing angle]
+                                  :or {x 0 y 0 x-spacing 5 y-spacing 5 angle 0}}]
   (let [container (pixi/Container.)]
     (doseq [[i card] (map-indexed vector cards)]
       (let [x (-> (* card-width card-scale-x) (+ x-spacing) (* (mod i 3)))
@@ -110,7 +111,29 @@
     (set-pos container {:x x :y y})
     (set! container.pivot.x (/ container.width 2))
     (set! container.pivot.y (/ container.height 2))
+    (set! container.angle angle)
     container))
+
+(defn player-hand-coord [pos]
+  (case pos
+    :bottom {:x (/ width 2)
+             :y (- height (* 1.1 card-height card-scale-y))
+             :angle 0}
+    :left {:x (* 1.5 card-width card-scale-x)
+           :y (/ height 2)
+           :angle 90}
+    :top {:x (/ width 2)
+          :y (* 1.1 card-height card-scale-y)
+          :angle 180}
+    :right {:x (- width (* 1.5 card-width card-scale-x))
+            :y (/ height 2)
+            :angle 270}))
+
+(defn draw-player-hand [stage cards pos]
+  (let [container (make-hand-container cards {})
+        coord (player-hand-coord pos)]
+    (set-pos container coord)
+    (.addChild stage container)))
 
 (defn draw-deck [stage]
   (let [sprite (make-card-sprite "2B" {:x (/ width 2) :y (/ height 2)})]
@@ -125,17 +148,21 @@
       (.set sprite.anchor 0.5 0.5)
       (.addChild stage sprite))))
 
+(def cs [{:rank :ace, :suit :clubs}
+         {:rank :ace, :suit :diamonds}
+         {:rank :ace, :suit :hearts}
+         {:rank :ace, :suit :spades}
+         {:rank :2, :suit :clubs}
+         {:rank :2, :suit :diamonds}])
+
 (defn draw [id game renderer stage]
   (remove-children (js/document.getElementById id))
   (draw-deck stage)
   ;(draw-table-card game stage)
-  (.addChild stage (make-hand-container [{:rank :ace, :suit :clubs}
-                                         {:rank :ace, :suit :diamonds}
-                                         {:rank :ace, :suit :hearts}
-                                         {:rank :ace, :suit :spades}
-                                         {:rank :2, :suit :clubs}
-                                         {:rank :2, :suit :diamonds}]
-                                        {:x (/ width 2) :y (/ width 2)}))
+  (draw-player-hand stage cs :bottom)
+  (draw-player-hand stage cs :left)
+  (draw-player-hand stage cs :top)
+  (draw-player-hand stage cs :right)
   (.render renderer stage)
   (attach-view id renderer))
 
