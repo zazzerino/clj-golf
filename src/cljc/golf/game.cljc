@@ -1,6 +1,7 @@
 (ns golf.game
   (:require [clojure.spec.alpha :as spec])
-  (:import (java.util UUID)))
+  #?(:clj (:import (java.util UUID)))
+     )
 
 (def ranks [:ace :2 :3 :4 :5 :6 :7 :8 :9 :10 :jack :queen :king])
 (def suits [:clubs :diamonds :hearts :spades])
@@ -35,7 +36,8 @@
    :hand []})
 
 (defn make-game []
-  {:id         (str (UUID/randomUUID))
+  {#?@(:clj [:id (str (UUID/randomUUID))]
+       :cljs [:id (str (random-uuid))])
    :players    {}
    :deck       (make-deck)
    :table-card nil})

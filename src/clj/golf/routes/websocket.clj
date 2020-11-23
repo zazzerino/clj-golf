@@ -104,6 +104,9 @@
       :create-game (handle-create-game channel message)
       (log/warn "no matching message type:" message))))
 
+(defn send-game-update [channel game-id]
+  (async/send! channel (get @games game-id)))
+
 ;(defn notify-clients! [msg]
 ;  (doseq [chan @channels]
 ;    (async/send! chan msg)))

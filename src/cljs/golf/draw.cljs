@@ -2,9 +2,8 @@
   (:require ["pixi.js" :as pixi]
             [clojure.string :as string]
             [reagent.core :as reagent]
-            [re-frame.core :as re-frame]))
-
-(def game-state (reagent/atom {}))
+            [re-frame.core :as re-frame]
+            [golf.game :as game]))
 
 (def width 500)
 (def height 500)
@@ -13,6 +12,22 @@
 (def card-height 336)
 (def card-scale-x 0.2)
 (def card-scale-y 0.2)
+
+(defn- remove-children [elem]
+  (doseq [child elem.children]
+    (.removeChild elem child)))
+
+(def ^:private rank-texture-names
+  (zipmap game/ranks
+          ["A" "2" "3" "4" "5" "6" "7" "8" "9" "T" "J" "Q" "K"]))
+
+(def ^:private suit-texture-names
+  (zipmap game/suits ["C" "D" "H" "S"]))
+
+(defn- texture-name [card]
+  (let [rank (rank-texture-names (:rank card))
+        suit (suit-texture-names (:suit card))]
+    (str rank suit)))
 
 (def card-files
   ; downloaded from www.me.uk/cards, copyright Adrian Kennard
@@ -68,7 +83,7 @@
   (.load loader))
 
 (defn attach-view [id renderer]
-  (-> (.getElementById js/document id)
+  (-> (js/document.getElementById id)
       (.appendChild renderer.view)))
 
 (defn get-texture [name]
@@ -78,37 +93,43 @@
   (doto (pixi/Sprite. (get-texture name))
     (-> .-scale (.set card-scale-x card-scale-y))))
 
-(defn draw-table-card [stage]
+(defn draw-deck [stage]
   (let [sprite (make-card-sprite "2B")]
     (set! sprite.x (/ width 2))
     (set! sprite.y (/ height 2))
-    (-> sprite .-anchor (.set 0.5 0.5))
+    (.set sprite.anchor 0.5 0.5)
     (.addChild stage sprite)))
 
-(defn remove-children [elem]
-  (doseq [child elem.children]
-    (.removeChild elem child)))
+(defn draw-table-card [game stage]
+  (if-let [table-card (:table-card game)]
+    (let [sprite (make-card-sprite table-card)]
+      (set! sprite.x (/ width 3))
+      (set! sprite.y (/ height 3))
+      (.set sprite.anchor 0.5 0.5)
+      (.addChild stage sprite))))
 
-(defn draw [id renderer stage]
+(defn draw [id game renderer stage]
   (remove-children (js/document.getElementById id))
-  (draw-table-card stage)
+  (draw-deck stage)
+  ;(draw-table-card game stage)
   (.render renderer stage)
   (attach-view id renderer))
 
-(defn init-graphics [id loader renderer stage]
+(defn init-graphics [id game loader renderer stage]
   (load-card-textures loader)
   (-> loader.onComplete (.add #(do (println "textures loaded")
-                                   (draw id renderer stage)))))
+                                   (draw id game renderer stage)))))
 
 (defn game-canvas []
-  (let [id "game-canvas"]
+  (let [id "game-canvas"
+        game @(re-frame/subscribe [:game])]
     (reagent/create-class
       {:component-did-mount (fn []
-                              (init-graphics id loader renderer stage)
+                              (init-graphics id game loader renderer stage)
                               (println "game-canvas mounted"))
        :component-did-update (fn []
-                               (draw id renderer stage)
+                               (draw id game renderer stage)
                                (println "game-canvas updated"))
        :reagent-render (fn []
-                         @game-state
+                         game
                          [:div#game-canvas])})))

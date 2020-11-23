@@ -60,3 +60,15 @@
   :<- [:game]
   (fn [game _]
     (:id game)))
+
+(re-frame/reg-sub
+  :game/deck
+  :<- [:game]
+  (fn [game _]
+    (:deck game)))
+
+(re-frame/reg-sub
+  :game/table-card
+  :<- [:game]
+  (fn [game _]
+    (:table-card game)))
