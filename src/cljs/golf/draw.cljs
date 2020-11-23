@@ -51,13 +51,11 @@
    "img/cards/svg/8D.svg", "img/cards/svg/9S.svg", "img/cards/svg/JD.svg",
    "img/cards/svg/KS.svg", "img/cards/svg/TD.svg"])
 
-(defn make-renderer
-  ([{:keys [width height background-color]
-     :or {width 256 height 256 background-color 0xDDDDDD}}]
-   (pixi/Renderer. #js{"width" width
-                       "height" height
-                       "backgroundColor" background-color}))
-  ([] (make-renderer {})))
+(defn make-renderer  [{:keys [width height background-color]
+                       :or {width 256 height 256 background-color 0xDDDDDD}}]
+  (pixi/Renderer. #js{"width" width
+                      "height" height
+                      "backgroundColor" background-color}))
 
 (def renderer (make-renderer {:width width :height height}))
 (def stage (pixi/Container.))
@@ -89,20 +87,39 @@
 (defn get-texture [name]
   (-> (aget loader.resources name) .-texture))
 
-(defn make-card-sprite [name]
+(defn set-pos [sprite {:keys [x y]}]
+  (set! sprite.x x)
+  (set! sprite.y y)
+  sprite)
+
+(defn make-card-sprite [name {:keys [x y] :or {x 0 y 0}}]
   (doto (pixi/Sprite. (get-texture name))
+    (set-pos {:x x :y y})
     (-> .-scale (.set card-scale-x card-scale-y))))
 
+(defn make-hand-container [cards {:keys [x y x-spacing y-spacing]
+                                  :or {x 0 y 0 x-spacing 5 y-spacing 5}}]
+  (let [container (pixi/Container.)]
+    (doseq [[i card] (map-indexed vector cards)]
+      (let [x (-> (* card-width card-scale-x) (+ x-spacing) (* (mod i 3)))
+            y (if (< i 3)
+                0
+                (-> (* card-height card-scale-y) (+ y-spacing)))
+            card-sprite (make-card-sprite (texture-name card) {:x x :y y})]
+        (.addChild container card-sprite)))
+    (set-pos container {:x x :y y})
+    (set! container.pivot.x (/ container.width 2))
+    (set! container.pivot.y (/ container.height 2))
+    container))
+
 (defn draw-deck [stage]
-  (let [sprite (make-card-sprite "2B")]
-    (set! sprite.x (/ width 2))
-    (set! sprite.y (/ height 2))
+  (let [sprite (make-card-sprite "2B" {:x (/ width 2) :y (/ height 2)})]
     (.set sprite.anchor 0.5 0.5)
     (.addChild stage sprite)))
 
-(defn draw-table-card [game stage]
+#_(defn draw-table-card [game stage]
   (if-let [table-card (:table-card game)]
-    (let [sprite (make-card-sprite table-card)]
+    (let [sprite (make-card-sprite table-card {})]
       (set! sprite.x (/ width 3))
       (set! sprite.y (/ height 3))
       (.set sprite.anchor 0.5 0.5)
@@ -112,6 +129,13 @@
   (remove-children (js/document.getElementById id))
   (draw-deck stage)
   ;(draw-table-card game stage)
+  (.addChild stage (make-hand-container [{:rank :ace, :suit :clubs}
+                                         {:rank :ace, :suit :diamonds}
+                                         {:rank :ace, :suit :hearts}
+                                         {:rank :ace, :suit :spades}
+                                         {:rank :2, :suit :clubs}
+                                         {:rank :2, :suit :diamonds}]
+                                        {:x (/ width 2) :y (/ width 2)}))
   (.render renderer stage)
   (attach-view id renderer))
 
