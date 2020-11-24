@@ -59,7 +59,7 @@
     (assoc db :user user)))
 
 (re-frame/reg-event-db
-  :user/logout
+  :logout
   (fn [db _]
     (assoc db :user nil :game nil)))
 

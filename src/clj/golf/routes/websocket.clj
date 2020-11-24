@@ -78,7 +78,7 @@
                        (assoc-in [:games game-id] game))))
     game))
 
-;; websocket messages
+;; websocket handlers
 
 (defn on-open [channel]
   (let [user (make-user channel)]
@@ -121,11 +121,15 @@
     (async/send! channel response)))
 
 (defn handle-get-games [channel]
-  (let [games (-> @state :games vals vec #_(update-in [:players] vals))
+  (let [games (-> @state :games vals vec)
         response (encode-message {:type :get-games
                                   :payload {:games games}})]
     (log/info "sending games")
     (async/send! channel response)))
+
+;(defn handle-start-game [channel {:keys [id]}]
+;  (let [game (get-in @state [:games id])]
+;    ))
 
 (defn on-message [channel raw-message]
   (let [message (decode-message raw-message)

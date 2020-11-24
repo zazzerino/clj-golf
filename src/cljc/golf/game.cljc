@@ -1,24 +1,32 @@
 (ns golf.game
-  (:require [clojure.spec.alpha :as spec])
-  #?(:clj (:import (java.util UUID)))
-  )
+  (:require [clojure.spec.alpha :as s]
+            [clojure.spec.gen.alpha :as gen])
+  #?(:clj (:import (java.util UUID))))
 
 (def ranks [:ace :2 :3 :4 :5 :6 :7 :8 :9 :10 :jack :queen :king])
 (def suits [:clubs :diamonds :hearts :spades])
 
-(spec/def ::rank (set ranks))
-(spec/def ::suit (set suits))
-(spec/def ::card (spec/keys :req-un [::rank ::suit]))
-(spec/def ::deck (spec/* ::card))
+(s/def ::rank (set ranks))
+(s/def ::suit (set suits))
+(s/def ::card (s/keys :req-un [::rank ::suit]))
+(s/def ::deck (s/* ::card))
 
-(spec/def :player/id string?)
-(spec/def :player/name string?)
-(spec/def :player/hand (spec/* ::card))
-(spec/def ::player (spec/keys :req-un [:player/id :player/name :player/hand]))
-(spec/def ::players (spec/map-of :player/id ::player))
+(s/def ::id string?)
+(s/def ::name string?)
+(s/def ::hand (s/coll-of ::card))
+(s/def ::player (s/keys :req-un [::id ::name ::hand]))
+(s/def ::players (s/map-of ::id ::player))
 
-(spec/def ::table-card (spec/nilable ::card))
-(spec/def ::game (spec/keys :req-un [::players ::deck ::table-card]))
+(s/def ::table-card (s/nilable ::card))
+(s/def ::scratch-card (s/nilable ::card))
+(s/def ::card-source #{:table :deck})
+
+(s/def ::turn (s/and integer? (comp not neg?)))
+(s/def ::game (s/keys :req-un [::players ::deck ::table-card ::turn]))
+
+(defn gen-uuid []
+  #?(:clj (str (UUID/randomUUID))
+     :cljs (str (random-uuid))))
 
 (defn make-deck []
   (for [rank ranks
@@ -36,11 +44,11 @@
    :hand []})
 
 (defn make-game []
-  {#?@(:clj [:id (str (UUID/randomUUID))]
-       :cljs [:id (str (random-uuid))])
-   :players    {}
-   :deck       (make-deck)
-   :table-card nil})
+  {:id (gen-uuid)
+   :players {}
+   :deck (make-deck)
+   :table-card nil
+   :turn 0})
 
 (defn add-player [game player]
   (update-in game [:players] conj {(:id player) player}))
@@ -81,9 +89,40 @@
 (defn shuffle-deck [game]
   (update-in game [:deck] shuffle))
 
-(defn init-game [game players]
-  (-> game
-      (add-players players)
-      (shuffle-deck)
-      (deal-table-card)
-      (deal-starting-hands)))
+(defn start-game
+  ([game]
+   (-> game
+       (shuffle-deck)
+       (deal-starting-hands)
+       (deal-table-card)))
+  ([game players]
+   (start-game (add-players game players))))
+
+(defn replace-card [hand card-to-replace new-card]
+  (replace {card-to-replace new-card} hand))
+
+(defn get-hand [game player-id]
+  (get-in game [:players player-id :hand]))
+
+(defn take-from-table [game player-id card-to-replace]
+  (let [hand (get-hand game player-id)
+        table-card (:table-card game)
+        new-hand (replace-card hand card-to-replace table-card)]
+    (-> game
+        (assoc-in [:players player-id :hand] new-hand)
+        (assoc :table-card card-to-replace))))
+
+(defn take-from-deck [game player-id card-to-replace]
+  (let [hand (get-hand game player-id)
+        {:keys [card deck]} (deal-card (:deck game))
+        new-hand (replace-card hand card-to-replace card)]
+    (-> game
+        (assoc-in [:players player-id :hand] new-hand)
+        (assoc :table-card card-to-replace)
+        (assoc :deck deck))))
+
+(defn player-move [game {:keys [player-id card-source card-to-replace]}]
+  (-> (case card-source
+        :deck (take-from-deck game player-id card-to-replace)
+        :table (take-from-table game player-id card-to-replace))
+      (update-in [:turn] inc)))

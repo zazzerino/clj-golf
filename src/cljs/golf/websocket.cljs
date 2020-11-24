@@ -41,6 +41,10 @@
 (defn send-get-games! []
   (send-transit-message! {:type :get-games}))
 
+(defn send-start-game! [id]
+  (send-transit-message! {:type :start-game
+                          :id id}))
+
 ;; response handlers
 
 (defn handle-login [{:keys [id name] :as user}]
@@ -48,14 +52,14 @@
   (re-frame/dispatch [:user/login user]))
 
 (defn handle-logout [{:keys [id]}]
-  (println (str "user logged out: " id)))
+  (println (str "logging out: " id))
+  (re-frame/dispatch [:logout id]))
 
 (defn handle-game-created [{:keys [game]}]
   (println (str "game created: " game))
   (re-frame/dispatch [:set-game game]))
 
 (defn handle-get-games [{:keys [games]}]
-  ;(println (str "games: " games))
   (re-frame/dispatch [:set-games games]))
 
 (defn handle-response [response]

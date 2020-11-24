@@ -155,10 +155,10 @@
   (remove-children (js/document.getElementById id))
   (draw-deck loader stage)
   (draw-table-card loader stage game)
-  (draw-player-hand loader stage cs :bottom)
-  (draw-player-hand loader stage cs :left)
-  (draw-player-hand loader stage cs :top)
-  (draw-player-hand loader stage cs :right)
+  ;(draw-player-hand loader stage cs :bottom)
+  ;(draw-player-hand loader stage cs :left)
+  ;(draw-player-hand loader stage cs :top)
+  ;(draw-player-hand loader stage cs :right)
   (.render renderer stage)
   (attach-view id renderer))
 
@@ -170,15 +170,15 @@
 (defn game-canvas []
   (let [id "game-canvas"
         game @(re-frame/subscribe [:game])
-        get-loader (fn [] pixi/Loader.shared)
-        make-renderer #(make-renderer {:width width :height height})
-        make-stage #(pixi/Container.)]
+        loader (fn [] pixi/Loader.shared)
+        renderer #(make-renderer {:width width :height height})
+        stage #(pixi/Container.)]
     (reagent/create-class
       {:component-did-mount (fn []
-                              (init-graphics id game (get-loader) (make-renderer) (make-stage))
+                              (init-graphics id game (loader) (renderer) (stage))
                               (println "game-canvas mounted"))
        :component-did-update (fn []
-                               (draw id game (get-loader) (make-renderer) (make-stage))
+                               (draw id game (loader) (renderer) (stage))
                                (println "game-canvas updated"))
        :reagent-render (fn []
                          game

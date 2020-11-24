@@ -20,8 +20,7 @@
         :on-click #(do (re-frame/dispatch [:toggle-navbar-expanded])
                        (.stopPropagation %))
         :class (when @expanded? :is-active)}
-       [:span][:span][:span]
-       ]]
+       [:span][:span][:span]]]
      [:div#nav-menu.navbar-menu
       {:class (when @expanded? :is-active)}
       [:div.navbar-start
@@ -71,11 +70,6 @@
        ^{:key (:id game)}
        [:li "Game " (:id game)])]))
 
-;(defn update-games-button []
-;  [:input {:type :button
-;           :value "Update"
-;           :on-click #()}])
-
 (defn login-page []
   [login-form])
 
@@ -85,13 +79,13 @@
 (defn game-page []
   [:div.game-page
    [:h2 "Games"]
-   [game-list]
-   #_[update-games-button]])
+   [game-list]])
 
 (defn home-page []
   [:div.home-page
    [:h2 "Let's play golf."]
-   [draw/game-canvas]])
+   (if @(re-frame/subscribe [:game])
+     [draw/game-canvas])])
 
 (defn page []
   (if-let [page @(re-frame/subscribe [:common/page])]
