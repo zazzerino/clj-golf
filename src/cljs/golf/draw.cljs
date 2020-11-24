@@ -57,34 +57,30 @@
                       "height" height
                       "backgroundColor" background-color}))
 
-(def renderer (make-renderer {:width width :height height}))
-(def stage (pixi/Container.))
-(def loader pixi/Loader.shared)
-
 (defn card-name [filename]
   (-> (string/split filename "/")
       last
       (string/split ".")
       first))
 
-(defn texture-loaded? [name]
+(defn texture-loaded? [loader name]
   (aget loader.resources name))
 
-(defn load-card-texture [filename]
+(defn load-card-texture [loader filename]
   (let [name (card-name filename)]
-    (if-not (texture-loaded? name)
+    (if-not (texture-loaded? loader name)
       (.add loader name filename))))
 
 (defn load-card-textures [loader]
   (doseq [file card-files]
-    (load-card-texture file))
+    (load-card-texture loader file))
   (.load loader))
 
 (defn attach-view [id renderer]
   (-> (js/document.getElementById id)
       (.appendChild renderer.view)))
 
-(defn get-texture [name]
+(defn get-texture [loader name]
   (-> (aget loader.resources name) .-texture))
 
 (defn set-pos [sprite {:keys [x y angle] :or {x 0 y 0 angle 0}}]
@@ -93,20 +89,20 @@
   (set! sprite.angle angle)
   sprite)
 
-(defn make-card-sprite [name {:keys [x y angle] :or {x 0 y 0 angle 0}}]
-  (doto (pixi/Sprite. (get-texture name))
+(defn make-card-sprite [loader name {:keys [x y angle] :or {x 0 y 0 angle 0}}]
+  (doto (pixi/Sprite. (get-texture loader name))
     (set-pos {:x x :y y :angle angle})
     (-> .-scale (.set card-scale-x card-scale-y))))
 
-(defn make-hand-container [cards {:keys [x y x-spacing y-spacing angle]
-                                  :or {x 0 y 0 x-spacing 5 y-spacing 5 angle 0}}]
+(defn make-hand-container [loader cards {:keys [x y x-spacing y-spacing angle]
+                                         :or {x 0 y 0 x-spacing 5 y-spacing 5 angle 0}}]
   (let [container (pixi/Container.)]
     (doseq [[i card] (map-indexed vector cards)]
       (let [x (-> (* card-width card-scale-x) (+ x-spacing) (* (mod i 3)))
             y (if (< i 3)
                 0
                 (-> (* card-height card-scale-y) (+ y-spacing)))
-            card-sprite (make-card-sprite (texture-name card) {:x x :y y})]
+            card-sprite (make-card-sprite loader (texture-name card) {:x x :y y})]
         (.addChild container card-sprite)))
     (set-pos container {:x x :y y})
     (set! container.pivot.x (/ container.width 2))
@@ -129,20 +125,20 @@
             :y (/ height 2)
             :angle 270}))
 
-(defn draw-player-hand [stage cards pos]
-  (let [container (make-hand-container cards {})
+(defn draw-player-hand [loader stage cards pos]
+  (let [container (make-hand-container loader cards {})
         coord (player-hand-coord pos)]
     (set-pos container coord)
     (.addChild stage container)))
 
-(defn draw-deck [stage]
-  (let [sprite (make-card-sprite "2B" {:x (/ width 2) :y (/ height 2)})]
+(defn draw-deck [loader stage]
+  (let [sprite (make-card-sprite loader "2B" {:x (/ width 2) :y (/ height 2)})]
     (.set sprite.anchor 0.5 0.5)
     (.addChild stage sprite)))
 
-#_(defn draw-table-card [game stage]
+(defn draw-table-card [loader stage game]
   (if-let [table-card (:table-card game)]
-    (let [sprite (make-card-sprite table-card {})]
+    (let [sprite (make-card-sprite loader table-card {})]
       (set! sprite.x (/ width 3))
       (set! sprite.y (/ height 3))
       (.set sprite.anchor 0.5 0.5)
@@ -155,31 +151,34 @@
          {:rank :2, :suit :clubs}
          {:rank :2, :suit :diamonds}])
 
-(defn draw [id game renderer stage]
+(defn draw [id game loader renderer stage]
   (remove-children (js/document.getElementById id))
-  (draw-deck stage)
-  ;(draw-table-card game stage)
-  (draw-player-hand stage cs :bottom)
-  (draw-player-hand stage cs :left)
-  (draw-player-hand stage cs :top)
-  (draw-player-hand stage cs :right)
+  (draw-deck loader stage)
+  (draw-table-card loader stage game)
+  (draw-player-hand loader stage cs :bottom)
+  (draw-player-hand loader stage cs :left)
+  (draw-player-hand loader stage cs :top)
+  (draw-player-hand loader stage cs :right)
   (.render renderer stage)
   (attach-view id renderer))
 
 (defn init-graphics [id game loader renderer stage]
   (load-card-textures loader)
   (-> loader.onComplete (.add #(do (println "textures loaded")
-                                   (draw id game renderer stage)))))
+                                   (draw id game loader renderer stage)))))
 
 (defn game-canvas []
   (let [id "game-canvas"
-        game @(re-frame/subscribe [:game])]
+        game @(re-frame/subscribe [:game])
+        get-loader (fn [] pixi/Loader.shared)
+        make-renderer #(make-renderer {:width width :height height})
+        make-stage #(pixi/Container.)]
     (reagent/create-class
       {:component-did-mount (fn []
-                              (init-graphics id game loader renderer stage)
+                              (init-graphics id game (get-loader) (make-renderer) (make-stage))
                               (println "game-canvas mounted"))
        :component-did-update (fn []
-                               (draw id game renderer stage)
+                               (draw id game (get-loader) (make-renderer) (make-stage))
                                (println "game-canvas updated"))
        :reagent-render (fn []
                          game

@@ -7,9 +7,10 @@
 
 (spec/def ::navbar-expanded? boolean?)
 
-(spec/def ::db (spec/keys :req-un [::user ::navbar-expanded?]))
+;(spec/def ::db (spec/keys :req-un [::user ::navbar-expanded?]))
 
 (def default-db
-  {:user nil
-   :navbar-expanded? false
-   :game nil})
+  {:navbar-expanded? false
+   :user nil
+   :game nil
+   :games nil})

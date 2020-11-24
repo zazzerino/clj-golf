@@ -72,3 +72,8 @@
   :<- [:game]
   (fn [game _]
     (:table-card game)))
+
+(re-frame/reg-sub
+  :games
+  (fn [db _]
+    (:games db)))

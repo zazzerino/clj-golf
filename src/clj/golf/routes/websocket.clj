@@ -97,6 +97,8 @@
                                   :payload {:id (:id user)
                                             :name name}})]
     (log/info "logging in:" name)
+    (if (nil? user)
+      (log/error "user not found. channel:" channel))
     (set-user-name! user name)
     (async/send! channel response)))
 
@@ -118,6 +120,16 @@
     (log/info "user:" (:id user) "connect to game:" (:id game))
     (async/send! channel response)))
 
+(defn- format-games [state]
+  (-> state :games vals))
+
+(defn handle-get-games [channel]
+  (let [games (-> @state :games vals vec #_(update-in [:players] vals))
+        response (encode-message {:type :get-games
+                                  :payload {:games games}})]
+    (log/info "sending games")
+    (async/send! channel response)))
+
 (defn on-message [channel raw-message]
   (let [message (decode-message raw-message)
         type (:type message)
@@ -127,6 +139,7 @@
       :login (handle-login channel payload)
       :logout (handle-logout channel payload)
       :create-game (handle-create-game channel)
+      :get-games (handle-get-games channel)
       (log/warn "no matching message type:" message))))
 
 #_(defn send-game-update [channel game-id]

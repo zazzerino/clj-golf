@@ -26,6 +26,10 @@
            }]
      ["/login" {:name :login
                 :view #'views/login-page}]
+     ["/games" {:name :games
+                :view #'views/game-page
+                :controllers [{:start (fn [_]
+                                        (ws/send-get-games!))}]}]
      ["/about" {:name :about
                 :view #'views/about-page}]]))
 

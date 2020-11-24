@@ -25,6 +25,7 @@
       [:div.navbar-start
        [nav-link "#/" "Home" :home]
        [nav-link "#/login" "Login" :login]
+       [nav-link "#/games" "Games" :games]
        [nav-link "#/about" "About" :about]]]]))
 
 (defn user-name-input [{:keys [value on-change]}]
@@ -56,16 +57,28 @@
      [:p "Connected to game " game-id])])
 
 (defn logout-button [user-id]
-  [:input {:type "button"
-           :value "Logout"
-           :on-click #(do (websocket/send-logout! user-id)
-                          (re-frame/dispatch [:user/logout]))}])
+  [:input.logout-button {:type "button"
+                         :value "Logout"
+                         :on-click #(do (websocket/send-logout! user-id)
+                                        (re-frame/dispatch [:user/logout]))}])
+
+(defn game-list []
+  (let [games @(re-frame/subscribe [:games])]
+    [:ul.game-list
+     (for [game games]
+       ^{:key (:id game)}
+       [:li "Game " (:id game)])]))
 
 (defn login-page []
   [login-form])
 
 (defn about-page []
   [:img {:src "/img/warning_clojure.png"}])
+
+(defn game-page []
+  [:div.game-page
+   [:h2 "Games"]
+   [game-list]])
 
 (defn home-page []
   [:div.home-page

@@ -25,6 +25,8 @@
       (println "Websocket connection established with: " url))
     (throw (js/Error. "Websocket connection failed."))))
 
+;; requests
+
 (defn send-login! [name]
   (send-transit-message! {:type :login
                           :payload {:name name}}))
@@ -35,6 +37,11 @@
 
 (defn send-create-game! []
   (send-transit-message! {:type :create-game}))
+
+(defn send-get-games! []
+  (send-transit-message! {:type :get-games}))
+
+;; response handlers
 
 (defn handle-login [{:keys [id name] :as user}]
   (println (str "logging in " name))
@@ -47,6 +54,10 @@
   (println (str "game created: " game))
   (re-frame/dispatch [:set-game game]))
 
+(defn handle-get-games [{:keys [games]}]
+  ;(println (str "games: " games))
+  (re-frame/dispatch [:set-games games]))
+
 (defn handle-response [response]
   (println (str "received: " response))
   (let [type (:type response)
@@ -55,4 +66,5 @@
       :login-ok (handle-login payload)
       :logout-ok (handle-logout payload)
       :game-created (handle-game-created payload)
+      :get-games(handle-get-games payload)
       (println "no matching response type"))))

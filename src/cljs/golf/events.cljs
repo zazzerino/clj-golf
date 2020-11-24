@@ -72,3 +72,8 @@
   :set-game
   (fn [db [_ game]]
     (assoc db :game game)))
+
+(re-frame/reg-event-db
+  :set-games
+  (fn [db [_ games]]
+    (assoc db :games games)))
