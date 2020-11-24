@@ -29,7 +29,7 @@
      ["/games" {:name :games
                 :view #'views/game-page
                 :controllers [{:start (fn [_]
-                                        (ws/send-get-games!))}]}]
+                                        #_(ws/send-get-games!))}]}]
      ["/about" {:name :about
                 :view #'views/about-page}]]))
 
@@ -43,10 +43,13 @@
 ;; Initialize app
 (defn ^:dev/after-load mount-components []
   (re-frame/clear-subscription-cache!)
+  (ws/send-login! "Bob")
+  (ws/send-create-game!)
+  (ws/send-get-games!)
   (dom/render [#'views/page] (.getElementById js/document "app")))
 
-;(set! js/window.onclick #(if @(re-frame/subscribe [:navbar-expanded?])
-;                           (re-frame/dispatch [:toggle-navbar-expanded])))
+(set! js/window.onclick #(if @(re-frame/subscribe [:navbar-expanded?])
+                           (re-frame/dispatch [:toggle-navbar-expanded])))
 
 (defn init! []
   (start-router!)

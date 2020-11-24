@@ -2,7 +2,7 @@
   (:require [reagent.core :as reagent]
             [re-frame.core :as re-frame]
             [golf.draw :as draw]
-            [golf.websocket :as websocket]))
+            [golf.websocket :as ws]))
 
 (defn nav-link [uri title page]
   [:a.navbar-item
@@ -17,9 +17,11 @@
       [:a.navbar-item {:href "/" :style {:font-weight :bold}} "golf"]
       [:span.navbar-burger.burger
        {:data-target :nav-menu
-        :on-click #(re-frame/dispatch [:toggle-navbar-expanded])
+        :on-click #(do (re-frame/dispatch [:toggle-navbar-expanded])
+                       (.stopPropagation %))
         :class (when @expanded? :is-active)}
-       [:span][:span][:span]]]
+       [:span][:span][:span]
+       ]]
      [:div#nav-menu.navbar-menu
       {:class (when @expanded? :is-active)}
       [:div.navbar-start
@@ -48,7 +50,7 @@
      [user-name-input {:value @name
                        :on-change #(reset! name (-> % .-target .-value))}]
      [login-button {:on-click #(if-not (nil? @name)
-                                 (websocket/send-login! @name))}]]))
+                                 (ws/send-login! @name))}]]))
 
 (defn info-display [name]
   [:div.info-display
@@ -59,7 +61,7 @@
 (defn logout-button [user-id]
   [:input.logout-button {:type "button"
                          :value "Logout"
-                         :on-click #(do (websocket/send-logout! user-id)
+                         :on-click #(do (ws/send-logout! user-id)
                                         (re-frame/dispatch [:user/logout]))}])
 
 (defn game-list []
@@ -68,6 +70,11 @@
      (for [game games]
        ^{:key (:id game)}
        [:li "Game " (:id game)])]))
+
+;(defn update-games-button []
+;  [:input {:type :button
+;           :value "Update"
+;           :on-click #()}])
 
 (defn login-page []
   [login-form])
@@ -78,7 +85,8 @@
 (defn game-page []
   [:div.game-page
    [:h2 "Games"]
-   [game-list]])
+   [game-list]
+   #_[update-games-button]])
 
 (defn home-page []
   [:div.home-page

@@ -120,9 +120,6 @@
     (log/info "user:" (:id user) "connect to game:" (:id game))
     (async/send! channel response)))
 
-(defn- format-games [state]
-  (-> state :games vals))
-
 (defn handle-get-games [channel]
   (let [games (-> @state :games vals vec #_(update-in [:players] vals))
         response (encode-message {:type :get-games
