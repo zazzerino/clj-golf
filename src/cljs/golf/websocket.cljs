@@ -1,6 +1,6 @@
 (ns golf.websocket
   (:require [cognitect.transit :as transit]
-            [re-frame.core :as re-frame]))
+            [re-frame.core :as rf]))
 
 (defonce ws-chan (atom nil))
 
@@ -49,18 +49,18 @@
 
 (defn handle-login [{:keys [id name] :as user}]
   (println (str "logging in " name))
-  (re-frame/dispatch [:user/login user]))
+  (rf/dispatch [:user/login user]))
 
 (defn handle-logout [{:keys [id]}]
   (println (str "logging out: " id))
-  (re-frame/dispatch [:logout id]))
+  (rf/dispatch [:logout id]))
 
 (defn handle-game-created [{:keys [game]}]
   (println (str "game created: " game))
-  (re-frame/dispatch [:set-game game]))
+  (rf/dispatch [:set-game game]))
 
 (defn handle-get-games [{:keys [games]}]
-  (re-frame/dispatch [:set-games games]))
+  (rf/dispatch [:set-games games]))
 
 (defn handle-response [response]
   (println (str "received: " response))
@@ -70,5 +70,5 @@
       :login-ok (handle-login payload)
       :logout-ok (handle-logout payload)
       :game-created (handle-game-created payload)
-      :get-games(handle-get-games payload)
+      :get-games (handle-get-games payload)
       (println "no matching response type"))))
