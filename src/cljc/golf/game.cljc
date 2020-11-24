@@ -20,8 +20,8 @@
 (s/def ::table-card (s/nilable ::card))
 (s/def ::scratch-card (s/nilable ::card))
 (s/def ::card-source #{:table :deck})
-
 (s/def ::turn (s/and integer? (comp not neg?)))
+
 (s/def ::game (s/keys :req-un [::players ::deck ::table-card ::turn]))
 
 (defn gen-uuid []

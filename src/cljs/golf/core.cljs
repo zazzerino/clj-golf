@@ -39,7 +39,7 @@
    navigate!
    {}))
 
-(defn ^:dev/after-load load-state []
+(defn load-state! []
   (ws/send-login! "Bob")
   (if-not @(re-frame/subscribe [:game])
     (ws/send-create-game!)))
@@ -48,7 +48,6 @@
 ;; Initialize app
 (defn ^:dev/after-load mount-components []
   (re-frame/clear-subscription-cache!)
-  ;(ws/send-get-games!)
   (dom/render [#'views/page] (.getElementById js/document "app")))
 
 (set! js/window.onclick #(if @(re-frame/subscribe [:navbar-expanded?])
