@@ -135,7 +135,8 @@
     (.addChild stage container)))
 
 (defn draw-deck [loader stage]
-  (let [sprite (make-card-sprite loader "2B" {:x (/ width 2)
+  (let [sprite (make-card-sprite loader "2B" {:x (- (/ width 2)
+                                                    (* (/ 1 2) card-scale-x card-width))
                                               :y (/ height 2)})]
     (.set sprite.anchor 0.5 0.5)
     (.addChild stage sprite)))
@@ -143,7 +144,8 @@
 (defn draw-table-card [loader stage game]
   (if-let [table-card (:table-card game)]
     (let [sprite (make-card-sprite loader (texture-name table-card)
-                                   {:x (+ (/ width 2) (* card-scale-x card-width))
+                                   {:x (+ (/ width 2)
+                                          (* (/ 1 2) card-scale-x card-width))
                                     :y (/ height 2)})]
       (.set sprite.anchor 0.5 0.5)
       (.addChild stage sprite))))
@@ -159,6 +161,7 @@
   (remove-children (js/document.getElementById id))
   (draw-deck loader stage)
   (draw-table-card loader stage game)
+  (draw-player-hand loader stage (game/get-hand game @(rf/subscribe [:user/id])) :bottom)
   ;(draw-player-hand loader stage cs :bottom)
   ;(draw-player-hand loader stage cs :left)
   ;(draw-player-hand loader stage cs :top)
@@ -173,17 +176,21 @@
 
 (defn game-canvas []
   (let [id "game-canvas"
-        game @(rf/subscribe [:game])
+        game (rf/subscribe [:game])
         loader (fn [] pixi/Loader.shared)
         renderer #(make-renderer {:width width :height height})
         stage #(pixi/Container.)]
     (reagent/create-class
       {:component-did-mount (fn []
-                              (init-graphics id game (loader) (renderer) (stage))
+                              (init-graphics id @game (loader) (renderer) (stage))
                               (println "game-canvas mounted"))
        :component-did-update (fn []
-                               (draw id game (loader) (renderer) (stage))
+                               (draw id @game (loader) (renderer) (stage))
                                (println "game-canvas updated"))
        :reagent-render (fn []
-                         game
-                         [:div#game-canvas])})))
+                         @game
+                         [:div.game-canvas
+                          [:div#game-canvas]
+                          [:input {:type :button
+                                   :value "Start"
+                                   :on-click #(ws/send-start-game! (:id @game))}]])})))

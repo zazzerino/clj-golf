@@ -1,22 +1,22 @@
 (ns golf.events
   (:require
-    [re-frame.core :as re-frame]
-    [ajax.core :as ajax]
+    [re-frame.core :as rf]
+    ;[ajax.core :as ajax]
     [reitit.frontend.easy :as rfe]
     [reitit.frontend.controllers :as rfc]
     [golf.db :as db]))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :initialize-db
  (fn [_ _]
    db/default-db))
 
-(re-frame/reg-fx
+(rf/reg-fx
   :common/navigate-fx!
   (fn [[k & [params query]]]
     (rfe/push-state k params query)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
   :common/navigate
   (fn [db [_ match]]
     (let [old-match (:common/route db)
@@ -25,7 +25,7 @@
                                                   match))]
       (assoc db :common/route new-match))))
 
-(re-frame/reg-event-fx
+(rf/reg-event-fx
   :common/navigate!
   (fn [_ [_ url-key params query]]
     {:common/navigate-fx! [url-key params query]}))
@@ -43,7 +43,7 @@
 ;                  :response-format (ajax/raw-response-format)
 ;                  :on-success      [:set-docs]}}))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
   :common/set-error
   (fn [db [_ error]]
     (assoc db :common/error error)))
@@ -53,27 +53,27 @@
 ;  (fn [_ _]
 ;    {:dispatch [:fetch-docs]}))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
   :user/login
   (fn [db [_ user]]
     (assoc db :user user)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
   :user/logout
   (fn [db _]
     (assoc db :user nil :game nil)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
   :toggle-navbar-expanded
   (fn [db _]
     (update-in db [:navbar-expanded?] not)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
   :set-game
   (fn [db [_ game]]
     (assoc db :game game)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
   :set-games
   (fn [db [_ games]]
     (assoc db :games games)))

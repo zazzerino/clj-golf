@@ -45,6 +45,11 @@
   (send-transit-message! {:type :start-game
                           :id id}))
 
+(defn send-connect-to-game! [user-id game-id]
+  (send-transit-message! {:type :connect-to-game
+                          :user-id user-id
+                          :game-id game-id}))
+
 ;; response handlers
 
 (defn handle-login [message]
@@ -67,6 +72,10 @@
   (println (str "game started: " game))
   (rf/dispatch [:set-game game]))
 
+(defn handle-connect-to-game [{:keys [game]}]
+  (println (str "connected to game: " (:id game)))
+  (rf/dispatch [:set-game game]))
+
 (defn handle-response [response]
   (println (str "received: " response))
   (let [type (:type response)]
@@ -76,4 +85,10 @@
       :game-created (handle-game-created response)
       :get-games (handle-get-games response)
       :game-started (handle-game-started response)
+      :connected-to-game (handle-connect-to-game response)
       (println "no matching response type: " type))))
+
+(defn init []
+  (send-login! "name0")
+  (send-create-game!)
+  (send-start-game! @(rf/subscribe [:game/id])))

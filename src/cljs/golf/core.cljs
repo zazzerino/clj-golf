@@ -28,8 +28,7 @@
                 :view #'views/login-page}]
      ["/games" {:name :games
                 :view #'views/game-page
-                :controllers [{:start (fn [_]
-                                        #_(ws/send-get-games!))}]}]
+                :controllers [{:start #(ws/send-get-games!)}]}]
      ["/about" {:name :about
                 :view #'views/about-page}]]))
 
@@ -38,11 +37,6 @@
    router
    navigate!
    {}))
-
-(defn load-state! []
-  (ws/send-login! "Bob")
-  (if-not @(re-frame/subscribe [:game])
-      (ws/send-create-game!)))
 
 ;; -------------------------
 ;; Initialize app

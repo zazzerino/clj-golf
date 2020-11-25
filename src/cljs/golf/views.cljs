@@ -1,23 +1,23 @@
 (ns golf.views
-  (:require [reagent.core :as reagent]
-            [re-frame.core :as re-frame]
+  (:require [reagent.core :as r]
+            [re-frame.core :as rf]
             [golf.draw :as draw]
             [golf.websocket :as ws]))
 
 (defn nav-link [uri title page]
   [:a.navbar-item
    {:href   uri
-    :class (when (= page @(re-frame/subscribe [:common/page])) :is-active)}
+    :class (when (= page @(rf/subscribe [:common/page])) :is-active)}
    title])
 
 (defn navbar []
-  (reagent/with-let [expanded? (re-frame/subscribe [:navbar-expanded?])]
-    [:nav.navbar.is-info>div.container
+  (r/with-let [expanded? (rf/subscribe [:navbar-expanded?])]
+              [:nav.navbar.is-info>div.container
      [:div.navbar-brand
       [:a.navbar-item {:href "/" :style {:font-weight :bold}} "golf"]
       [:span.navbar-burger.burger
        {:data-target :nav-menu
-        :on-click #(do (re-frame/dispatch [:toggle-navbar-expanded])
+        :on-click #(do (rf/dispatch [:toggle-navbar-expanded])
                        (.stopPropagation %))
         :class (when @expanded? :is-active)}
        [:span][:span][:span]]]
@@ -42,8 +42,8 @@
            :on-click on-click}])
 
 (defn login-form []
-  (reagent/with-let
-    [name (reagent/atom nil)]
+  (r/with-let
+    [name (r/atom nil)]
     [:div.login-form
      [:h2 "Login"]
      [user-name-input {:value @name
@@ -54,21 +54,23 @@
 (defn info-display [name]
   [:div.info-display
    [:p "Logged in as " name]
-   (if-let [game-id @(re-frame/subscribe [:game/id])]
+   (if-let [game-id @(rf/subscribe [:game/id])]
      [:p "Connected to game " game-id])])
 
 (defn logout-button [user-id]
   [:input.logout-button {:type "button"
                          :value "Logout"
                          :on-click #(do (ws/send-logout! user-id)
-                                        (re-frame/dispatch [:user/logout]))}])
+                                        (rf/dispatch [:user/logout]))}])
 
 (defn game-list []
-  (let [games @(re-frame/subscribe [:games])]
+  (let [games @(rf/subscribe [:games])
+        user-id @(rf/subscribe [:user/id])]
     [:ul.game-list
      (for [game games]
        ^{:key (:id game)}
-       [:li "Game " (:id game)])]))
+       [:li {:on-click #(ws/send-connect-to-game! user-id (:id game))}
+        (:id game)])]))
 
 (defn login-page []
   [login-form])
@@ -84,16 +86,21 @@
 (defn home-page []
   [:div.home-page
    [:h2 "Let's play golf."]
-   (if @(re-frame/subscribe [:game])
+   (if @(rf/subscribe [:game])
      [draw/game-canvas])])
 
 (defn page []
-  (if-let [page @(re-frame/subscribe [:common/page])]
+  (if-let [page @(rf/subscribe [:common/page])]
     [:div
      [navbar]
      [:section.section>div.container>div.content
       [page]
-      (if-let [{:keys [id name]} @(re-frame/subscribe [:user])]
+      (if-let [{:keys [id name]} @(rf/subscribe [:user])]
         [:div
          [info-display name]
-         [logout-button id]])]]))
+         [logout-button id]])
+      (if-let [game @(rf/subscribe [:game])]
+        [:p (-> game
+                (dissoc :deck)
+                (update-in [:players] vals)
+                str)])]]))

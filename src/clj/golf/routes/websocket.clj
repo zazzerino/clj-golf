@@ -7,7 +7,7 @@
             [golf.manager :as manager])
   (:import (java.io ByteArrayInputStream ByteArrayOutputStream)))
 
-;; websocket utils
+;; message utils
 
 (defn decode-message [message]
   (let [bytes (.getBytes message)
@@ -21,52 +21,64 @@
     (transit/write writer message)
     (.toString out)))
 
+(defn send-message! [channel message]
+  (async/send! channel (encode-message message)))
+
 ;; websocket handlers
 
 (defn handle-login [context channel message]
   (let [name (:name message)
         user (manager/get-user-by-channel context channel)
         id (:id user)
-        response (encode-message {:type :login
-                                  :id id
-                                  :name name})]
+        response {:type :login
+                  :id id
+                  :name name}]
     (if-not (nil? user)
       (log/info "logging in:" name)
       (log/error "user not found. channel:" channel))
     (manager/login! context id name)
-    (async/send! channel response)))
+    (send-message! channel response)))
 
 (defn handle-logout [context channel message]
   (let [id (:id message)
-        response (encode-message {:type :logout
-                                  :id id})]
+        response {:type :logout
+                  :id id}]
     (log/info "logging out:" id)
     (manager/login! context id "anon")
-    (async/send! channel response)))
+    (send-message! channel response)))
 
 (defn handle-create-game [context channel]
   (let [user (manager/get-user-by-channel context channel)
         game (manager/make-game)
-        response (encode-message {:type :game-created
-                                  :game game})]
+        response {:type :game-created
+                  :game game}]
     (log/info "user:" (:id user) "connected to game:" (:id game))
     (manager/add-game! context game)
     (manager/connect-user-to-game! context (:id user) (:id game))
-    (async/send! channel response)))
+    (send-message! channel response)))
 
 (defn handle-get-games [context channel]
   (let [games (manager/get-games context)
-        response (encode-message {:type :get-games
-                                  :games games})]
-    (log/info "sending games")
-    (async/send! channel response)))
+        response {:type :get-games
+                  :games games}]
+    (log/info "sending games to:" channel)
+    (send-message! channel response)))
 
 (defn handle-start-game [context channel {:keys [id]}]
-  (let [game (manager/start-game! context id)
-        response (encode-message {:type :game-started
-                                  :game game})]
+  (manager/start-game! context id)
+  (let [game (manager/get-game-by-id context id)
+        response {:type :game-started
+                  :game game}]
     (log/info "game started:" game)
-    (async/send! channel response)))
+    (send-message! channel response)))
+
+(defn handle-connect-to-game [context channel {:keys [user-id game-id]}]
+  (log/info "connecting user:" user-id "to game:" game-id)
+  (manager/connect-user-to-game! context user-id game-id)
+  (let [game (manager/get-game-by-id context game-id)
+        response {:type :connected-to-game
+                  :game game}]
+    (send-message! channel response)))
 
 (defn on-open [context channel]
   (let [user (manager/make-user channel)]
@@ -76,7 +88,6 @@
 (defn on-close [context channel {:keys [code reason]}]
   (let [{:keys [id]} (manager/get-user-by-channel context channel)]
     (log/info "channel closed. code:" code "reason:" reason)
-    (log/info "user deleted:" id)
     (manager/remove-user! context id)))
 
 (defn on-message [context channel raw-message]
@@ -89,10 +100,11 @@
       :create-game (handle-create-game context channel)
       :get-games (handle-get-games context channel)
       :start-game (handle-start-game context channel message)
+      :connect-to-game (handle-connect-to-game context channel message)
       (log/warn "no matching message type:" message))))
 
 #_(defn send-game-update [channel game-id]
-  (async/send! channel (get @games game-id)))
+    (async/send! channel (get @games game-id)))
 
 ;(defn notify-clients! [msg]
 ;  (doseq [chan @channels]
