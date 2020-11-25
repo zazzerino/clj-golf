@@ -2,8 +2,9 @@
   (:require ["pixi.js" :as pixi]
             [clojure.string :as string]
             [reagent.core :as reagent]
-            [re-frame.core :as re-frame]
-            [golf.game :as game]))
+            [re-frame.core :as rf]
+            [golf.game :as game]
+            [golf.websocket :as ws]))
 
 (def width 500)
 (def height 500)
@@ -83,13 +84,15 @@
 (defn get-texture [loader name]
   (-> (aget loader.resources name) .-texture))
 
-(defn set-pos [sprite {:keys [x y angle] :or {x 0 y 0 angle 0}}]
+(defn set-pos [sprite {:keys [x y angle]
+                       :or {x 0 y 0 angle 0}}]
   (set! sprite.x x)
   (set! sprite.y y)
   (set! sprite.angle angle)
   sprite)
 
-(defn make-card-sprite [loader name {:keys [x y angle] :or {x 0 y 0 angle 0}}]
+(defn make-card-sprite [loader name {:keys [x y angle]
+                                     :or {x 0 y 0 angle 0}}]
   (doto (pixi/Sprite. (get-texture loader name))
     (set-pos {:x x :y y :angle angle})
     (-> .-scale (.set card-scale-x card-scale-y))))
@@ -132,15 +135,16 @@
     (.addChild stage container)))
 
 (defn draw-deck [loader stage]
-  (let [sprite (make-card-sprite loader "2B" {:x (/ width 2) :y (/ height 2)})]
+  (let [sprite (make-card-sprite loader "2B" {:x (/ width 2)
+                                              :y (/ height 2)})]
     (.set sprite.anchor 0.5 0.5)
     (.addChild stage sprite)))
 
 (defn draw-table-card [loader stage game]
   (if-let [table-card (:table-card game)]
-    (let [sprite (make-card-sprite loader table-card {})]
-      (set! sprite.x (/ width 3))
-      (set! sprite.y (/ height 3))
+    (let [sprite (make-card-sprite loader (texture-name table-card)
+                                   {:x (+ (/ width 2) (* card-scale-x card-width))
+                                    :y (/ height 2)})]
       (.set sprite.anchor 0.5 0.5)
       (.addChild stage sprite))))
 
@@ -169,7 +173,7 @@
 
 (defn game-canvas []
   (let [id "game-canvas"
-        game @(re-frame/subscribe [:game])
+        game @(rf/subscribe [:game])
         loader (fn [] pixi/Loader.shared)
         renderer #(make-renderer {:width width :height height})
         stage #(pixi/Container.)]

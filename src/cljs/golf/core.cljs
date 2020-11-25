@@ -42,7 +42,7 @@
 (defn load-state! []
   (ws/send-login! "Bob")
   (if-not @(re-frame/subscribe [:game])
-    (ws/send-create-game!)))
+      (ws/send-create-game!)))
 
 ;; -------------------------
 ;; Initialize app
