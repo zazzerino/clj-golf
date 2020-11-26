@@ -5,9 +5,14 @@
             [reagent.core :as r]
             [re-frame.core :as rf]))
 
+(def ^:private config {:type :auto
+                       :wrap-recv-evs? false})
+
 (mount/defstate socket
-  :start (sente/make-channel-socket! "/ws" js/csrfToken {:type :auto
-                                                         :wrap-recv-evs? false}))
+  :start (sente/make-channel-socket! "/ws" js/csrfToken config))
+
+(defn get-uid []
+  (-> @socket :state deref :uid))
 
 (defn send-message! [& args]
   (if-let [send-fn (:send-fn @socket)]
@@ -18,6 +23,10 @@
 (defmulti handle-message (fn [{:keys [id]} _]
                            id))
 
+(defmethod handle-message :default
+  [{:keys [event]} _]
+  (.warn js/console "Unknown websocket message: " (pr-str event)))
+
 (defmethod handle-message :chsk/handshake
   [{:keys [event]} _]
   (.log js/console "Connection established: " (pr-str event)))
@@ -27,17 +36,8 @@
   (.log js/console "State changed: " (pr-str event)))
 
 (defmethod handle-message :chsk/ws-ping
-  [_ _]
-  (.log js/console "pinged"))
-
-(defmethod handle-message :golf/hello
-  [a b]
-  (js/console.log "a: " (pr-str a))
-  (js/console.log "b: " (pr-str b)))
-
-(defmethod handle-message :default
   [{:keys [event]} _]
-  (.warn js/console "Unknown websocket message: " (pr-str event)))
+  #_(.log js/console "pinged"))
 
 (defn receive-message! [{:keys [id event] :as message}]
   (do (.log js/console "Event received: " (pr-str event))
@@ -48,29 +48,24 @@
   :stop (when-let [stop-fn @router]
           (stop-fn)))
 
-;(defonce ws-chan (atom nil))
-;
-;(def json-reader (transit/reader :json))
-;(def json-writer (transit/writer :json))
-;
-;(defn receive-transit-message! [update-fn]
-;  (fn [msg]
-;    (update-fn (->> msg .-data (transit/read json-reader)))))
-;
-;(defn send-transit-message! [message]
-;  (if @ws-chan
-;    (.send @ws-chan (transit/write json-writer message))
-;    (throw (js/Error. "Websocket is not available."))))
-;
-;(defn make-websocket! [url receive-handler]
-;  (println "attempting to connect websocket")
-;  (if-let [chan (js/WebSocket. url)]
-;    (do
-;      (set! (.-onmessage chan) (receive-transit-message! receive-handler))
-;      (reset! ws-chan chan)
-;      (println "Websocket connection established with: " url))
-;    (throw (js/Error. "Websocket connection failed."))))
-;
+(defn send-login! [name]
+  (send-message!
+    [:golf/login {:name name}]
+    4000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (rf/dispatch [:user/login (:user reply)])
+        (println "error: " (pr-str reply))))))
+
+(defn send-new-game! []
+  (send-message!
+    [:golf/new-game]
+    4000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (rf/dispatch [:set-game (:game reply)])
+        (println "error: " (pr-str reply))))))
+
 ;;; requests
 ;
 ;(defn send-login! [name]

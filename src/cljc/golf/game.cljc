@@ -38,10 +38,15 @@
   {:card (first deck)
    :deck (rest deck)})
 
-(defn make-player [id name]
-  {:id   id
-   :name name
-   :hand []})
+(defn make-player
+  ([id]
+   {:id id
+    :name "anon"
+    :hand []})
+  ([id name]
+   {:id   id
+    :name name
+    :hand []}))
 
 (defn make-game []
   {:id (gen-uuid)

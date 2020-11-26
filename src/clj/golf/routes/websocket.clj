@@ -10,21 +10,27 @@
             [golf.middleware :as middleware]
             [golf.manager :as manager]))
 
+(def foo (atom nil))
+
+(def ctx (manager/make-context))
+
 (defn client-id [ring-req]
+  (reset! foo ring-req)
   (get-in ring-req [:params :client-id]))
 
 (mount/defstate socket
   :start (sente/make-channel-socket! (get-sch-adapter)
                                      {:user-id-fn client-id}))
 
-#_(defn connected-uids []
-  (:connected-uids socket))
-
 (def connected-uids (:connected-uids socket))
 
 (defn send-message! [uid message]
   (log/info "sending message:" message)
   ((:send-fn socket) uid message))
+
+(defn send-to-all! [message]
+  (doseq [uid (:any @connected-uids)]
+    (send-message! uid message)))
 
 (defmulti handle-message (fn [{:keys [id]}]
                            id))
@@ -35,9 +41,34 @@
   {:error (str "Unrecognized websocket event type: " (pr-str id))
    :id    id})
 
-(defmethod handle-message :golf/hello
-  [message]
-  (log/info "hello" message))
+;(defmethod handle-message :chsk/ws-ping
+;  [message]
+;  (log/info "pinged:" (pr-str message)))
+
+(defmethod handle-message :chsk/uidport-open
+  [{:keys [uid]}]
+  (if (manager/get-user-by-id ctx uid)
+    (manager/remove-user ctx uid))
+  (manager/add-user ctx uid)
+  (log/info "uidport open:" uid))
+
+(defmethod handle-message :golf/login
+  [{:keys [uid ?reply-fn ?data]}]
+  (let [name (:name ?data)]
+    (if-let [user (manager/get-user-by-id ctx uid)]
+      (do (log/info "user found:" (pr-str user))
+          (manager/login ctx uid name)
+          (if ?reply-fn
+            (?reply-fn {:user (assoc user :name name)})
+            (log/error "no reply-fn in :golf/login msg")))
+      (log/error "user not found:" (pr-str uid)))))
+
+(defmethod handle-message :golf/new-game
+  [{:keys [uid ?reply-fn]}]
+  (let [game (manager/new-game ctx uid)]
+    (log/info "game created:" (pr-str game))
+    (when ?reply-fn
+      (?reply-fn {:game game}))))
 
 (defn receive-message! [{:keys [id] :as message}]
   (log/debug "Received message with id: " id)
@@ -55,23 +86,6 @@
     :get  (:ajax-get-or-ws-handshake-fn socket)
     :post (:ajax-post-fn socket)}])
 
-;; message utils
-
-;(defn decode-message [message]
-;  (let [bytes (.getBytes message)
-;        in (ByteArrayInputStream. bytes)
-;        reader (transit/reader in :json)]
-;    (transit/read reader)))
-;
-;(defn encode-message [message]
-;  (let [out (ByteArrayOutputStream.)
-;        writer (transit/writer out :json)]
-;    (transit/write writer message)
-;    (.toString out)))
-;
-;(defn send-message! [channel message]
-;  (async/send! channel (encode-message message)))
-;
 ;;; websocket handlers
 ;
 ;(defn handle-login [context channel message]
