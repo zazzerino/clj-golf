@@ -71,6 +71,10 @@
     <orderEntry type="library" name="Leiningen: com.layerware/hugsql-adapter:0.5.1" level="project" />
     <orderEntry type="library" name="Leiningen: com.layerware/hugsql-core:0.5.1" level="project" />
     <orderEntry type="library" name="Leiningen: com.layerware/hugsql:0.5.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.taoensso/encore:3.1.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.taoensso/sente:1.16.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.taoensso/timbre:4.10.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.taoensso/truss:1.6.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.wsscode/pathom:2.2.31" level="project" />
     <orderEntry type="library" name="Leiningen: com.wsscode/spec-inspec:1.0.0-alpha2" level="project" />
     <orderEntry type="library" name="Leiningen: com.zaxxer/HikariCP:3.4.3" level="project" />
@@ -91,6 +95,7 @@
     <orderEntry type="library" name="Leiningen: hawk:0.2.11" level="project" />
     <orderEntry type="library" name="Leiningen: hiccup:1.0.5" level="project" />
     <orderEntry type="library" name="Leiningen: hikari-cp:2.12.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.aviso/pretty:0.1.33" level="project" />
     <orderEntry type="library" name="Leiningen: io.github.classgraph/classgraph:4.8.64" level="project" />
     <orderEntry type="library" name="Leiningen: io.undertow/undertow-core:2.1.3.Final" level="project" />
     <orderEntry type="library" name="Leiningen: io.undertow/undertow-servlet:1.4.14.Final" level="project" />
@@ -164,7 +169,7 @@
     <orderEntry type="library" name="Leiningen: org.clojure/tools.logging:1.1.0" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.macro:0.1.1" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.namespace:0.2.11" level="project" />
-    <orderEntry type="library" name="Leiningen: org.clojure/tools.reader:1.3.2" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/tools.reader:1.3.3" level="project" />
     <orderEntry type="library" name="Leiningen: org.codehaus.mojo/animal-sniffer-annotations:1.14" level="project" />
     <orderEntry type="library" name="Leiningen: org.flatland/ordered:1.5.7" level="project" />
     <orderEntry type="library" name="Leiningen: org.flatland/useful:0.11.6" level="project" />
@@ -175,6 +180,7 @@
     <orderEntry type="library" name="Leiningen: org.graalvm.truffle/truffle-api:20.1.0" level="project" />
     <orderEntry type="library" name="Leiningen: org.immutant/core:2.1.10" level="project" />
     <orderEntry type="library" name="Leiningen: org.immutant/web:2.1.10" level="project" />
+    <orderEntry type="library" name="Leiningen: org.java-websocket/Java-WebSocket:1.5.1" level="project" />
     <orderEntry type="library" name="Leiningen: org.javassist/javassist:3.18.1-GA" level="project" />
     <orderEntry type="library" name="Leiningen: org.jboss.logging/jboss-logging:3.4.1.Final" level="project" />
     <orderEntry type="library" name="Leiningen: org.jboss.spec.javax.annotation/jboss-annotations-api_1.2_spec:1.0.0.Final" level="project" />
@@ -193,7 +199,7 @@
     <orderEntry type="library" name="Leiningen: org.projectodd.wunderboss/wunderboss-core:0.13.1" level="project" />
     <orderEntry type="library" name="Leiningen: org.projectodd.wunderboss/wunderboss-web-undertow:0.13.1" level="project" />
     <orderEntry type="library" name="Leiningen: org.projectodd.wunderboss/wunderboss-web:0.13.1" level="project" />
-    <orderEntry type="library" name="Leiningen: org.slf4j/slf4j-api:1.7.29" level="project" />
+    <orderEntry type="library" name="Leiningen: org.slf4j/slf4j-api:1.7.25" level="project" />
     <orderEntry type="library" name="Leiningen: org.tobereplaced/lettercase:1.0.0" level="project" />
     <orderEntry type="library" name="Leiningen: org.webjars.npm/bulma:0.9.1" level="project" />
     <orderEntry type="library" name="Leiningen: org.webjars.npm/material-icons:0.3.1" level="project" />

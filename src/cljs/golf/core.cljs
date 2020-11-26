@@ -1,9 +1,11 @@
 (ns golf.core
   (:require
    [day8.re-frame.http-fx]
+   [reagent.core :as r]
    [reagent.dom :as dom]
-   [re-frame.core :as re-frame]
+   [re-frame.core :as rf]
    [markdown.core :refer [md->html]]
+   [mount.core :as mount]
    [golf.ajax :as ajax]
    [golf.draw]
    [golf.db]
@@ -16,7 +18,7 @@
   (:import goog.History))
 
 (defn navigate! [match _]
-  (re-frame/dispatch [:common/navigate match]))
+  (rf/dispatch [:common/navigate match]))
 
 (def router
   (reitit/router
@@ -28,7 +30,8 @@
                 :view #'views/login-page}]
      ["/games" {:name :games
                 :view #'views/game-page
-                :controllers [{:start #(ws/send-get-games!)}]}]
+                ;:controllers [{:start #(ws/send-get-games!)}]
+                }]
      ["/about" {:name :about
                 :view #'views/about-page}]]))
 
@@ -41,16 +44,20 @@
 ;; -------------------------
 ;; Initialize app
 (defn ^:dev/after-load mount-components []
-  (re-frame/clear-subscription-cache!)
+  (rf/clear-subscription-cache!)
   (dom/render [#'views/page] (.getElementById js/document "app")))
 
-(set! js/window.onclick #(if @(re-frame/subscribe [:navbar-expanded?])
-                           (re-frame/dispatch [:toggle-navbar-expanded])))
+(set! js/window.onclick #(if @(rf/subscribe [:navbar-expanded?])
+                           (rf/dispatch [:toggle-navbar-expanded])))
 
 (defn init! []
   (start-router!)
   (ajax/load-interceptors!)
-  (re-frame/dispatch-sync [:initialize-db])
-  (ws/make-websocket! (str "ws://" (.-host js/location) "/ws")
+  (rf/dispatch-sync [:initialize-db])
+  (mount/start)
+  #_(ws/start-router! (ws/response-handler (r/cursor ws/session [:messages])
+                                         (r/cursor ws/session [:fields])
+                                         (r/cursor ws/session [:errors])))
+  #_(ws/make-websocket! (str "ws://" (.-host js/location) "/ws")
                       ws/handle-response)
   (mount-components))

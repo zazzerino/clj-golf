@@ -191,6 +191,6 @@
                          @game
                          [:div.game-canvas
                           [:div#game-canvas]
-                          [:input {:type :button
+                          #_[:input {:type :button
                                    :value "Start"
                                    :on-click #(ws/send-start-game! (:id @game))}]])})))
