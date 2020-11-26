@@ -57,6 +57,15 @@
         (rf/dispatch [:user/login (:user reply)])
         (println "error: " (pr-str reply))))))
 
+(defn send-logout! []
+  (send-message!
+    [:golf/logout]
+    4000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (rf/dispatch [:user/logout])
+        (println "error: " (pr-str reply))))))
+
 (defn send-new-game! []
   (send-message!
     [:golf/new-game]

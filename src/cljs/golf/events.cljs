@@ -61,7 +61,7 @@
 (rf/reg-event-db
   :user/logout
   (fn [db _]
-    (assoc db :user nil :game nil)))
+    (dissoc db :user :game)))
 
 (rf/reg-event-db
   :toggle-navbar-expanded

@@ -48,8 +48,8 @@
      [:h2 "Login"]
      [user-name-input {:value @name
                        :on-change #(reset! name (-> % .-target .-value))}]
-     [login-button #_{:on-click #(if-not (nil? @name)
-                                 (ws/send-login! @name))}]]))
+     [login-button {:on-click #(if-let [name @name]
+                                 (ws/send-login! name))}]]))
 
 (defn info-display [name]
   [:div.info-display
@@ -60,8 +60,7 @@
 (defn logout-button [user-id]
   [:input.logout-button {:type "button"
                          :value "Logout"
-                         #_:on-click #_#(do (ws/send-logout! user-id)
-                                        (rf/dispatch [:user/logout]))}])
+                         :on-click #(ws/send-logout!)}])
 
 (defn game-list []
   (let [games @(rf/subscribe [:games])

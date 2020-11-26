@@ -43,11 +43,6 @@
 
 ;; games
 
-#_(defn new-game [ctx uid]
-  (let [game (-> (game/make-game)
-                 (game/add-player (game/make-player uid)))]
-    (swap! ctx update-in [:games] conj {(:id game) game})))
-
 (defn new-game [ctx user-id]
   (let [user (get-user-by-id ctx user-id)
         game (-> (game/make-game)

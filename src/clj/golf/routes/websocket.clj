@@ -37,7 +37,8 @@
 
 (defmethod handle-message :default
   [{:keys [id]}]
-  (log/debug "Received unrecognized websocket event type: " id)
+  (when-not (= id :chsk/ws-ping)
+    (log/debug "Received unrecognized websocket event type: " id))
   {:error (str "Unrecognized websocket event type: " (pr-str id))
    :id    id})
 
@@ -62,6 +63,15 @@
             (?reply-fn {:user (assoc user :name name)})
             (log/error "no reply-fn in :golf/login msg")))
       (log/error "user not found:" (pr-str uid)))))
+
+(defmethod handle-message :golf/logout
+  [{:keys [uid ?reply-fn]}]
+  (if-let [user (manager/get-user-by-id ctx uid)]
+    (do (log/info "logging out user:" uid)
+        (manager/logout ctx uid)
+        (if ?reply-fn
+          (?reply-fn :logged-out)))
+    (log/error "user not found: " (pr-str uid))))
 
 (defmethod handle-message :golf/new-game
   [{:keys [uid ?reply-fn]}]
