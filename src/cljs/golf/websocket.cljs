@@ -23,10 +23,6 @@
 (defmulti handle-message (fn [{:keys [id]} _]
                            id))
 
-(defmethod handle-message :default
-  [{:keys [event]} _]
-  (.warn js/console "Unknown websocket message: " (pr-str event)))
-
 (defmethod handle-message :chsk/handshake
   [{:keys [event]} _]
   (.log js/console "Connection established: " (pr-str event)))
@@ -38,6 +34,21 @@
 (defmethod handle-message :chsk/ws-ping
   [{:keys [event]} _]
   #_(.log js/console "pinged"))
+
+(defmethod handle-message :golf/hello
+  [_ _]
+  (println "hello golf"))
+
+(defmethod handle-message :golf/game-update
+  [{:keys [?data]} _]
+  (println "updating game")
+  (if-let [game (:game ?data)]
+    (rf/dispatch [:set-game game])
+    (println "There was a problem updating game.")))
+
+(defmethod handle-message :default
+  [{:keys [event]} _]
+  (.warn js/console "Unknown websocket message: " (pr-str event)))
 
 (defn receive-message! [{:keys [id event] :as message}]
   (do (.log js/console "Event received: " (pr-str event))

@@ -68,7 +68,7 @@
   (let [user (-> (get-user-by-id ctx user-id)
                  (assoc :game-id game-id))
         game (-> (get-game-by-id ctx game-id)
-                 (game/add-player (game/make-player user-id)))]
+                 (game/add-player (game/make-player user-id (:name user))))]
     (swap! ctx #(-> %
                     (assoc-in [:users user-id] user)
                     (assoc-in [:games game-id] game)))
@@ -79,5 +79,12 @@
                  (game/start-game))]
     (swap! ctx assoc-in [:games id] game)))
 
+(defn prettify-game [game]
+  (-> (select-keys game [:id :players])
+      (update-in [:players] vals)))
+
 (defn get-all-games [ctx]
-  (-> @ctx :games vals))
+  (->> @ctx :games vals (map prettify-game)))
+
+(defn get-player-ids [ctx game-id]
+  (keys (get-in @ctx [:games game-id :players])))

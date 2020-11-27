@@ -31,6 +31,15 @@
   (doseq [uid (:any @connected-uids)]
     (send-message! uid message)))
 
+(defn send-to-players! [ctx game-id message]
+  (let [player-ids (manager/get-player-ids ctx game-id)]
+    (doseq [uid player-ids]
+      (send-message! uid message))))
+
+(defn send-game-update! [ctx game-id]
+  (if-let [game (manager/get-game-by-id ctx game-id)]
+    (send-to-players! ctx game-id [:golf/game-update {:game game}])))
+
 (defmulti handle-message (fn [{:keys [id]}]
                            id))
 
@@ -41,9 +50,9 @@
   {:error (str "Unrecognized websocket event type: " (pr-str id))
    :id    id})
 
-;(defmethod handle-message :chsk/ws-ping
-;  [message]
-;  (log/info "pinged:" (pr-str message)))
+(defmethod handle-message :chsk/ws-ping
+  [message]
+  #_(log/info "pinged:" (pr-str message)))
 
 (defmethod handle-message :chsk/uidport-open
   [{:keys [uid]}]
@@ -51,6 +60,11 @@
     (manager/remove-user context uid))
   (manager/add-user context uid)
   (log/info "uidport open:" uid))
+
+(defmethod handle-message :chsk/uidport-close
+  [{:keys [uid]}]
+  (if (manager/get-user-by-id context uid)
+    (manager/remove-user context uid)))
 
 (defmethod handle-message :golf/login
   [{:keys [uid ?reply-fn ?data]}]
@@ -91,6 +105,10 @@
   (if-let [game (manager/join-game context (:game-id ?data) uid)]
     (if ?reply-fn
       (?reply-fn {:game game}))))
+
+(defmethod handle-message :golf/start-game
+  [{:keys [?data ?reply-fn]}]
+  )
 
 (defn receive-message! [{:keys [id] :as message}]
   (log/debug "Received message with id: " id)

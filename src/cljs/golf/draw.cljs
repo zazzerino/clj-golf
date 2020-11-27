@@ -134,6 +134,12 @@
     (set-pos container coord)
     (.addChild stage container)))
 
+(defn player-positions [num-players]
+  (case num-players
+    2 [:bottom :top]
+    3 [:bottom :left :right]
+    4 [:bottom :left :top :right]))
+
 (defn draw-deck [loader stage]
   (let [sprite (make-card-sprite loader "2B" {:x (- (/ width 2)
                                                     (* (/ 1 2) card-scale-x card-width))
