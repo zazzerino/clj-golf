@@ -145,8 +145,14 @@
     3 [:bottom :left :right]
     4 [:bottom :left :top :right]))
 
+(defn draw-player-hands [loader stage game turn]
+  (let [hands (game/hands-starting-at-turn game turn)
+        positions (hand-positions (count (:players game)))]
+    (doseq [[hand pos] (zipmap hands positions)]
+      (draw-player-hand loader stage hand pos))))
+
 #_(defn draw-player-hands [loader stage game]
-  (let [number @(rf/subscribe [:player/number])
+  (let [number @(rf/subscribe [:player/turn])
         hands (game/hands-starting-from-number game number)
         positions (hand-positions (-> game :players count))]
     (doseq [[hand pos] (zipmap hands positions)]
@@ -170,31 +176,32 @@
       (.set sprite.anchor 0.5 0.5)
       (.addChild stage sprite))))
 
-(defn draw [id game loader renderer stage]
+(defn draw [id game loader renderer stage turn]
   (remove-children (js/document.getElementById id))
   (draw-deck loader stage)
   (draw-table-card loader stage game)
-  ;(draw-player-hands loader stage game)
+  (draw-player-hands loader stage game turn)
   (.render renderer stage)
   (attach-view id renderer))
 
-(defn init-graphics [id game loader renderer stage]
+(defn init-graphics [id game loader renderer stage turn]
   (load-card-textures loader)
   (-> loader.onComplete (.add #(do (println "textures loaded")
-                                   (draw id game loader renderer stage)))))
+                                   (draw id game loader renderer stage turn)))))
 
 (defn game-canvas []
   (let [id "game-canvas"
         game (rf/subscribe [:game])
+        turn (rf/subscribe [:player/turn])
         loader (fn [] pixi/Loader.shared)
         renderer #(make-renderer {:width width :height height})
         stage #(pixi/Container.)]
     (reagent/create-class
       {:component-did-mount (fn []
-                              (init-graphics id @game (loader) (renderer) (stage))
+                              (init-graphics id @game (loader) (renderer) (stage) @turn)
                               (println "game-canvas mounted"))
        :component-did-update (fn []
-                               (draw id @game (loader) (renderer) (stage))
+                               (draw id @game (loader) (renderer) (stage) @turn)
                                (println "game-canvas updated"))
        :reagent-render (fn []
                          @game ; this will force a redraw when game is changed

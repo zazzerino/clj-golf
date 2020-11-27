@@ -112,12 +112,13 @@
 (defmethod handle-message :golf/start-game
   [{:keys [?data]}]
   (let [game-id (:game-id ?data)]
-    (if-let [game (manager/get-game-by-id context game-id)]
+    (if (manager/get-game-by-id context game-id)
       (do (manager/start-game context game-id)
           (send-game-update! context game-id)))))
 
 (defn receive-message! [{:keys [id] :as message}]
-  (log/debug "Received message with id: " id)
+  (when-not (= id :chsk/ws-ping)
+    (log/debug "Received message with id: " id))
   (handle-message message))
 
 (mount/defstate router
