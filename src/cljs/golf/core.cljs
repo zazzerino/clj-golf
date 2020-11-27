@@ -30,7 +30,7 @@
                 :view #'views/login-page}]
      ["/games" {:name :games
                 :view #'views/game-page
-                ;:controllers [{:start #(ws/send-get-games!)}]
+                :controllers [{:start #(ws/send-get-games!)}]
                 }]
      ["/about" {:name :about
                 :view #'views/about-page}]]))

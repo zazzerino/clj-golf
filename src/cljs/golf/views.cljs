@@ -62,13 +62,22 @@
                          :value "Logout"
                          :on-click #(ws/send-logout!)}])
 
+(defn new-game-button []
+  [:input.new-game-button {:type :button
+                           :value "Create game"
+                           :on-click #(ws/send-new-game!)}])
+
+(defn refresh-games-button []
+  [:input.refresh-games-button {:type :button
+                                :value "Refresh"
+                                :on-click #(ws/send-get-games!)}])
+
 (defn game-list []
-  (let [games @(rf/subscribe [:games])
-        user-id @(rf/subscribe [:user/id])]
+  (let [games @(rf/subscribe [:games])]
     [:ul.game-list
      (for [game games]
        ^{:key (:id game)}
-       [:li #_{:on-click #(ws/send-connect-to-game! user-id (:id game))}
+       [:li {:on-click #(ws/send-join-game! (:id game))}
         (:id game)])]))
 
 (defn login-page []
@@ -80,7 +89,10 @@
 (defn game-page []
   [:div.game-page
    [:h2 "Games"]
-   [game-list]])
+   [game-list]
+   [refresh-games-button]
+   [:div]
+   [new-game-button]])
 
 (defn home-page []
   [:div.home-page

@@ -49,8 +49,7 @@
           (stop-fn)))
 
 (defn send-login! [name]
-  (send-message!
-    [:golf/login {:name name}]
+  (send-message! [:golf/login {:name name}]
     4000
     (fn [reply]
       (if (sente/cb-success? reply)
@@ -58,8 +57,7 @@
         (println "error: " (pr-str reply))))))
 
 (defn send-logout! []
-  (send-message!
-    [:golf/logout]
+  (send-message! [:golf/logout]
     4000
     (fn [reply]
       (if (sente/cb-success? reply)
@@ -67,73 +65,25 @@
         (println "error: " (pr-str reply))))))
 
 (defn send-new-game! []
-  (send-message!
-    [:golf/new-game]
+  (send-message! [:golf/new-game]
     4000
     (fn [reply]
       (if (sente/cb-success? reply)
         (rf/dispatch [:set-game (:game reply)])
         (println "error: " (pr-str reply))))))
 
-;;; requests
-;
-;(defn send-login! [name]
-;  (send-transit-message! {:type :login
-;                          :name name}))
-;
-;(defn send-logout! [id]
-;  (send-transit-message! {:type :logout
-;                          :id id}))
-;
-;(defn send-create-game! []
-;  (send-transit-message! {:type :create-game}))
-;
-;(defn send-get-games! []
-;  (send-transit-message! {:type :get-games}))
-;
-;(defn send-start-game! [id]
-;  (send-transit-message! {:type :start-game
-;                          :id id}))
-;
-;(defn send-connect-to-game! [user-id game-id]
-;  (send-transit-message! {:type :connect-to-game
-;                          :user-id user-id
-;                          :game-id game-id}))
-;
-;;; response handlers
-;
-;(defn handle-login [message]
-;  (let [user (select-keys message [:id :name])]
-;    (println (str "logging in " user))
-;    (rf/dispatch [:user/login user])))
-;
-;(defn handle-logout [{:keys [id]}]
-;  (println (str "logging out: " id))
-;  (rf/dispatch [:user/logout id]))
-;
-;(defn handle-game-created [{:keys [game]}]
-;  (println (str "game created: " game))
-;  (rf/dispatch [:set-game game]))
-;
-;(defn handle-get-games [{:keys [games]}]
-;  (rf/dispatch [:set-games games]))
-;
-;(defn handle-game-started [{:keys [game]}]
-;  (println (str "game started: " game))
-;  (rf/dispatch [:set-game game]))
-;
-;(defn handle-connect-to-game [{:keys [game]}]
-;  (println (str "connected to game: " (:id game)))
-;  (rf/dispatch [:set-game game]))
-;
-;(defn handle-response [response]
-;  (println (str "received: " response))
-;  (let [type (:type response)]
-;    (case type
-;      :login (handle-login response)
-;      :logout (handle-logout response)
-;      :game-created (handle-game-created response)
-;      :get-games (handle-get-games response)
-;      :game-started (handle-game-started response)
-;      :connected-to-game (handle-connect-to-game response)
-;      (println "no matching response type: " type))))
+(defn send-get-games! []
+  (send-message! [:golf/get-all-games]
+    4000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (rf/dispatch [:set-games (:games reply)])
+        (println "error: " (pr-str reply))))))
+
+(defn send-join-game! [game-id]
+  (send-message! [:golf/join-game {:game-id game-id}]
+    4000
+    (fn [reply]
+      (if (sente/cb-success? reply)
+        (rf/dispatch [:set-game (:game reply)])
+        (println "error: " (pr-str reply))))))

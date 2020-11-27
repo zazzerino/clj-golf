@@ -10,12 +10,11 @@
             [golf.middleware :as middleware]
             [golf.manager :as manager]))
 
-(def foo (atom nil))
-
-(def ctx (manager/make-context))
+(mount/defstate context
+  :start (manager/make-context)
+  :stop (reset! context (manager/make-context)))
 
 (defn client-id [ring-req]
-  (reset! foo ring-req)
   (get-in ring-req [:params :client-id]))
 
 (mount/defstate socket
@@ -48,17 +47,17 @@
 
 (defmethod handle-message :chsk/uidport-open
   [{:keys [uid]}]
-  (if (manager/get-user-by-id ctx uid)
-    (manager/remove-user ctx uid))
-  (manager/add-user ctx uid)
+  (if (manager/get-user-by-id context uid)
+    (manager/remove-user context uid))
+  (manager/add-user context uid)
   (log/info "uidport open:" uid))
 
 (defmethod handle-message :golf/login
   [{:keys [uid ?reply-fn ?data]}]
   (let [name (:name ?data)]
-    (if-let [user (manager/get-user-by-id ctx uid)]
+    (if-let [user (manager/get-user-by-id context uid)]
       (do (log/info "user found:" (pr-str user))
-          (manager/login ctx uid name)
+          (manager/login context uid name)
           (if ?reply-fn
             (?reply-fn {:user (assoc user :name name)})
             (log/error "no reply-fn in :golf/login msg")))
@@ -66,18 +65,31 @@
 
 (defmethod handle-message :golf/logout
   [{:keys [uid ?reply-fn]}]
-  (if-let [user (manager/get-user-by-id ctx uid)]
+  (if-let [user (manager/get-user-by-id context uid)]
     (do (log/info "logging out user:" uid)
-        (manager/logout ctx uid)
+        (manager/logout context uid)
         (if ?reply-fn
           (?reply-fn :logged-out)))
     (log/error "user not found: " (pr-str uid))))
 
 (defmethod handle-message :golf/new-game
   [{:keys [uid ?reply-fn]}]
-  (let [game (manager/new-game ctx uid)]
+  (let [game (manager/new-game context uid)]
     (log/info "game created:" (pr-str game))
     (when ?reply-fn
+      (?reply-fn {:game game}))))
+
+(defmethod handle-message :golf/get-all-games
+  [{:keys [?reply-fn]}]
+  (let [games (manager/get-all-games context)]
+    (if ?reply-fn
+      (?reply-fn {:games games})
+      (log/error "no reply-fn provided to :golf/get-all-games"))))
+
+(defmethod handle-message :golf/join-game
+  [{:keys [uid ?data ?reply-fn]}]
+  (if-let [game (manager/join-game context (:game-id ?data) uid)]
+    (if ?reply-fn
       (?reply-fn {:game game}))))
 
 (defn receive-message! [{:keys [id] :as message}]
@@ -95,100 +107,3 @@
                  middleware/wrap-formats]
     :get  (:ajax-get-or-ws-handshake-fn socket)
     :post (:ajax-post-fn socket)}])
-
-;;; websocket handlers
-;
-;(defn handle-login [context channel message]
-;  (let [name (:name message)
-;        user (manager/get-user-by-channel context channel)
-;        id (:id user)
-;        response {:type :login
-;                  :id id
-;                  :name name}]
-;    (if-not (nil? user)
-;      (log/info "logging in:" name)
-;      (log/error "user not found. channel:" channel))
-;    (manager/login! context id name)
-;    (send-message! channel response)))
-;
-;(defn handle-logout [context channel message]
-;  (let [id (:id message)
-;        response {:type :logout
-;                  :id id}]
-;    (log/info "logging out:" id)
-;    (manager/login! context id "anon")
-;    (send-message! channel response)))
-;
-;(defn handle-create-game [context channel]
-;  (let [user (manager/get-user-by-channel context channel)
-;        game (manager/make-game)
-;        response {:type :game-created
-;                  :game game}]
-;    (log/info "user:" (:id user) "connected to game:" (:id game))
-;    (manager/add-game! context game)
-;    (manager/connect-user-to-game! context (:id user) (:id game))
-;    (send-message! channel response)))
-;
-;(defn handle-get-games [context channel]
-;  (let [games (manager/get-games context)
-;        response {:type :get-games
-;                  :games games}]
-;    (log/info "sending games to:" channel)
-;    (send-message! channel response)))
-;
-;(defn handle-start-game [context channel {:keys [id]}]
-;  (manager/start-game! context id)
-;  (let [game (manager/get-game-by-id context id)
-;        response {:type :game-started
-;                  :game game}]
-;    (log/info "game started:" game)
-;    (send-message! channel response)))
-;
-;(defn handle-connect-to-game [context channel {:keys [user-id game-id]}]
-;  (log/info "connecting user:" user-id "to game:" game-id)
-;  (manager/connect-user-to-game! context user-id game-id)
-;  (let [game (manager/get-game-by-id context game-id)
-;        response {:type :connected-to-game
-;                  :game game}]
-;    (send-message! channel response)))
-;
-;(defn on-open [context channel]
-;  (let [user (manager/make-user channel)]
-;    (log/info "user created:" user)
-;    (manager/add-user! context user)))
-;
-;(defn on-close [context channel {:keys [code reason]}]
-;  (let [{:keys [id]} (manager/get-user-by-channel context channel)]
-;    (log/info "channel closed. code:" code "reason:" reason)
-;    (manager/remove-user! context id)))
-;
-;(defn on-message [context channel raw-message]
-;  (let [message (decode-message raw-message)
-;        type (:type message)]
-;    (log/info "message received:" message)
-;    (case type
-;      :login (handle-login context channel message)
-;      :logout (handle-logout context channel message)
-;      :create-game (handle-create-game context channel)
-;      :get-games (handle-get-games context channel)
-;      :start-game (handle-start-game context channel message)
-;      :connect-to-game (handle-connect-to-game context channel message)
-;      (log/warn "no matching message type:" message))))
-;
-;#_(defn send-game-update [channel game-id]
-;    (async/send! channel (get @games game-id)))
-;
-;;(defn notify-clients! [msg]
-;;  (doseq [chan @channels]
-;;    (async/send! chan msg)))
-;
-;(def websocket-callbacks
-;  {:on-open (partial on-open manager/context)
-;   :on-close (partial on-close manager/context)
-;   :on-message (partial on-message manager/context)})
-;
-;(defn websocket-handler [request]
-;  (async/as-channel request websocket-callbacks))
-;
-;(defn websocket-routes []
-;  [["/ws" websocket-handler]])
