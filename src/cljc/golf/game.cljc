@@ -14,15 +14,19 @@
 (s/def ::id string?)
 (s/def ::name string?)
 (s/def ::hand (s/coll-of ::card))
-(s/def ::player (s/keys :req-un [::id ::name ::hand]))
+(s/def ::turn (s/and int? (comp not neg?)))
+(s/def ::player (s/keys :req-un [::id ::name ::hand]
+                        :opt-un [::turn]))
 (s/def ::players (s/map-of ::id ::player))
 
-(s/def ::table-card (s/nilable ::card))
-(s/def ::scratch-card (s/nilable ::card))
+(s/def ::table-card ::card)
+(s/def ::scratch-card ::card)
 (s/def ::card-source #{:table :deck})
 (s/def ::turn (s/and integer? (comp not neg?)))
+(s/def ::started? boolean?)
 
-(s/def ::game (s/keys :req-un [::players ::deck ::table-card ::turn]))
+(s/def ::game (s/keys :req-un [::players ::deck]
+                      :opt-un [::table-card ::turn ::started?]))
 
 (defn gen-uuid []
   #?(:clj (str (UUID/randomUUID))
@@ -39,24 +43,22 @@
    :deck (rest deck)})
 
 (defn make-player
-  ([id]
-   {:id id
-    :name "anon"
-    :hand []})
   ([id name]
-   {:id   id
+   {:id id
     :name name
-    :hand []}))
+    :hand []})
+  ([id]
+   (make-player id "anon")))
 
 (defn make-game []
   {:id (gen-uuid)
    :players {}
-   :deck (make-deck)
-   :table-card nil
-   :turn 0})
+   :deck (make-deck)})
 
 (defn add-player [game player]
-  (update-in game [:players] conj {(:id player) player}))
+  (let [turn (-> game :players count inc)
+        player (assoc player :turn turn)]
+    (update-in game [:players] conj {(:id player) player})))
 
 (defn add-players [game players]
   (reduce (fn [game player]

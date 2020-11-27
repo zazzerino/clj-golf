@@ -18,22 +18,27 @@
       (is (= 51 (count deck)))))
 
   (testing "create a player"
-    (is (s/valid? ::game/player (make-player "abcd1234" "Bob"))))
+    (let [player (make-player "abcd1234" "Bob")]
+    (is (s/valid? ::game/player player))
+    (is (= "abcd1234" (:id player)))
+    (is (= "Bob" (:name player)))
+    (is (= "anon" (:name (make-player "id1"))))))
 
-  (testing "add players to game"
-    (let [g (make-game)
-          p1 (make-player "1234" "Alice")
-          p2 (make-player "56789" "Bob")]
-      (is (s/valid? ::game/game g))
-      (is (empty? (:players g)))
-      (is (nil? (:table-card g)))
-      (let [g (add-player g p1)]
-        (is (= 1 (count (:players g))))
-        (is (= p1 (get (:players g) "1234")))
-        (is (s/valid? ::game/game g))
-        (let [g (add-player g p2)]
-          (is (= 2 (count (:players g))))
-          (is (= p2 (get (:players g) "56789")))))))
+  (testing "make a game"
+    (let [game (make-game)]
+      (s/valid? ::game/game game)))
+
+  (testing "add players"
+    (let [p1 (make-player "id0")
+          p2 (make-player "id1" "Bob")
+          game0 (-> (make-game)
+                    (add-player p1)
+                    (add-player p2))
+          game1 (add-players (make-game) [p1 p2])]
+      (is (s/valid? ::game/game game0))
+      (is (= 1 (get-in game0 [:players "id0" :turn])))
+      (is (= 2 (get-in game0 [:players "id1" :turn])))
+      (is (= (dissoc game0 :id) (dissoc game1 :id)))))
 
   (testing "deal cards to players"
     (let [player-id "a1b2c3"
@@ -257,7 +262,5 @@
         (is (= 1 (:turn game')))
         (is (= (:table-card game') {:rank :jack :suit :diamonds}))
         (is (= {:rank :10 :suit :hearts} (get-in game' [:players "id0" :hand 5])))
-        )
-      )
-    )
+        )))
   )

@@ -163,13 +163,6 @@
       (.set sprite.anchor 0.5 0.5)
       (.addChild stage sprite))))
 
-(def cs [{:rank :ace, :suit :clubs}
-         {:rank :ace, :suit :diamonds}
-         {:rank :ace, :suit :hearts}
-         {:rank :ace, :suit :spades}
-         {:rank :2, :suit :clubs}
-         {:rank :2, :suit :diamonds}])
-
 (defn draw [id game loader renderer stage]
   (remove-children (js/document.getElementById id))
   (draw-deck loader stage)
