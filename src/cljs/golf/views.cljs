@@ -61,9 +61,9 @@
                          :on-click #(ws/send-logout!)}])
 
 (defn new-game-button []
-  [:input.new-game-button {:type :button
-                           :value "Create game"
-                           :on-click #(ws/send-new-game!)}])
+  [:input.new-game-button {:type     :button
+                           :value    "Create game"
+                           :on-click #(ws/send-join-new-game!)}])
 
 (defn refresh-games-button []
   [:input.refresh-games-button {:type :button

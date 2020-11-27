@@ -86,9 +86,9 @@
           (?reply-fn :logged-out)))
     (log/error "user not found: " (pr-str uid))))
 
-(defmethod handle-message :golf/new-game
+(defmethod handle-message :golf/join-new-game
   [{:keys [uid ?reply-fn]}]
-  (let [game (manager/new-game context uid)
+  (let [game (manager/join-new-game context uid)
         games (manager/get-all-games context)]
     (log/info "game created:" (pr-str game))
     (send-to-all! [:golf/games-updated {:games games}])

@@ -50,18 +50,6 @@
     (swap! ctx update-in [:games] conj {(:id game) game})
     game))
 
-#_(defn new-game [ctx user-id]
-  (let [user (get-user-by-id ctx user-id)
-        name (if (:name user) (:name user) "anon")
-        game (-> (game/make-game)
-                 (game/add-player (game/make-player user-id name)))
-        game-id (:id game)
-        user (assoc user :game-id game-id)]
-    (swap! ctx #(-> %
-                    (assoc-in [:users user-id] user)
-                    (assoc-in [:games game-id] game)))
-    game))
-
 (defn remove-game [ctx game-id]
   (swap! ctx update-in [:games] dissoc game-id))
 
@@ -77,6 +65,12 @@
                     (assoc-in [:users user-id] user)
                     (assoc-in [:games game-id] game)))
     game))
+
+(defn join-new-game [ctx user-id]
+  (let [game (new-game ctx)
+        game-id (:id game)]
+    (join-game ctx game-id user-id)
+    (get-game-by-id ctx game-id)))
 
 (defn start-game [ctx id]
   (let [game (-> (get-game-by-id ctx id)

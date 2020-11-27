@@ -55,8 +55,8 @@
       (is (s/valid? ::manager/context @ctx))))
 
   (testing "new-game"
-    (let [ctx (make-context)
-          game (new-game ctx)]
+    (let [ctx (make-context)]
+      (new-game ctx)
       (is (= 1 (count (:games @ctx))))
       (is (s/valid? ::manager/context @ctx))))
 
@@ -84,6 +84,15 @@
       (is (some #{(:id user)} (-> (get-game-by-id ctx (:id game))
                                   :players
                                   keys)))
+      (is (s/valid? ::manager/context @ctx))))
+
+  (testing "join-new-game"
+    (let [ctx (make-context)
+          user-id (:id (add-user ctx "id0"))
+          game (join-new-game ctx user-id)]
+      (is (= "id0" (-> game :players keys first)))
+      (is (= (:id game) (-> @ctx :games keys first)))
+      (is (= (:id game) (:game-id (get-user-by-id ctx user-id))))
       (is (s/valid? ::manager/context @ctx))))
 
   (testing "get-player-ids"
