@@ -21,14 +21,15 @@
   :start (sente/make-channel-socket! (get-sch-adapter)
                                      {:user-id-fn client-id}))
 
-(def connected-uids (:connected-uids socket))
+(defn connected-uids []
+  @(:connected-uids socket))
 
 (defn send-message! [uid message]
   (log/info "sending message:" message)
   ((:send-fn socket) uid message))
 
 (defn send-to-all! [message]
-  (doseq [uid (:any @connected-uids)]
+  (doseq [uid (:any (connected-uids))]
     (send-message! uid message)))
 
 (defn send-to-players! [ctx game-id message]
@@ -40,12 +41,11 @@
   (if-let [game (manager/get-game-by-id ctx game-id)]
     (send-to-players! ctx game-id [:golf/game-update {:game game}])))
 
-(defmulti handle-message (fn [{:keys [id]}]
-                           id))
+(defmulti handle-message :id)
 
 (defmethod handle-message :default
   [{:keys [id]}]
-  (when-not (= id :chsk/ws-ping)
+  (when-not (= id ":chsk/ws-ping") ; don't log pings
     (log/debug "Received unrecognized websocket event type: " id))
   {:error (str "Unrecognized websocket event type: " (pr-str id))
    :id    id})
@@ -88,8 +88,10 @@
 
 (defmethod handle-message :golf/new-game
   [{:keys [uid ?reply-fn]}]
-  (let [game (manager/new-game context uid)]
+  (let [game (manager/new-game context uid)
+        games (manager/get-all-games context)]
     (log/info "game created:" (pr-str game))
+    (send-to-all! [:golf/games-updated {:games games}])
     (when ?reply-fn
       (?reply-fn {:game game}))))
 
@@ -103,12 +105,16 @@
 (defmethod handle-message :golf/join-game
   [{:keys [uid ?data ?reply-fn]}]
   (if-let [game (manager/join-game context (:game-id ?data) uid)]
-    (if ?reply-fn
-      (?reply-fn {:game game}))))
+    (do (send-game-update! context (:game-id ?data))
+        (if ?reply-fn
+          (?reply-fn {:game game})))))
 
 (defmethod handle-message :golf/start-game
-  [{:keys [?data ?reply-fn]}]
-  )
+  [{:keys [?data]}]
+  (let [game-id (:game-id ?data)]
+    (if-let [game (manager/get-game-by-id context game-id)]
+      (do (manager/start-game context game-id)
+          (send-game-update! context game-id)))))
 
 (defn receive-message! [{:keys [id] :as message}]
   (log/debug "Received message with id: " id)

@@ -20,8 +20,7 @@
     (throw (ex-info "Couldn't send message, channel isn't open!"
                     {:message (first args)}))))
 
-(defmulti handle-message (fn [{:keys [id]} _]
-                           id))
+(defmulti handle-message :id)
 
 (defmethod handle-message :chsk/handshake
   [{:keys [event]} _]
@@ -46,11 +45,17 @@
     (rf/dispatch [:set-game game])
     (println "There was a problem updating game.")))
 
+(defmethod handle-message :golf/games-updated
+  [{:keys [?data]} _]
+  (println "games updated")
+  (if-let [games (:games ?data)]
+    (rf/dispatch [:set-games games])))
+
 (defmethod handle-message :default
   [{:keys [event]} _]
   (.warn js/console "Unknown websocket message: " (pr-str event)))
 
-(defn receive-message! [{:keys [id event] :as message}]
+(defn receive-message! [{:keys [event] :as message}]
   (do (.log js/console "Event received: " (pr-str event))
       (handle-message message event)))
 
