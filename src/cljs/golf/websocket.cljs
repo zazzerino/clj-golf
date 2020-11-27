@@ -23,7 +23,9 @@
 (defmulti handle-message :id)
 
 (defmethod handle-message :chsk/handshake
-  [{:keys [event]} _]
+  [{:keys [event ?data]} _]
+  (if-let [uid (first ?data)]
+    (rf/dispatch [:user/login {:id uid :name "anon"}]))
   (.log js/console "Connection established: " (pr-str event)))
 
 (defmethod handle-message :chsk/state
