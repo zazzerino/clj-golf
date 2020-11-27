@@ -5,8 +5,8 @@
             [reagent.core :as r]
             [re-frame.core :as rf]))
 
-(def ^:private config {:type :auto
-                       :wrap-recv-evs? false})
+(def config {:type :auto
+             :wrap-recv-evs? false})
 
 (mount/defstate socket
   :start (sente/make-channel-socket! "/ws" js/csrfToken config))
@@ -103,3 +103,7 @@
       (if (sente/cb-success? reply)
         (rf/dispatch [:set-game (:game reply)])
         (println "error: " (pr-str reply))))))
+
+(defn send-start-game! []
+  (let [game-id @(rf/subscribe [:game/id])]
+    (send-message! [:golf/start-game {:game-id game-id}])))

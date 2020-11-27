@@ -53,9 +53,7 @@
 
 (defn info-display [name]
   [:div.info-display
-   [:p "Logged in as " name]
-   (if-let [game-id @(rf/subscribe [:game/id])]
-     [:p "Connected to game " game-id])])
+   [:p "Logged in as " name]])
 
 (defn logout-button [user-id]
   [:input.logout-button {:type "button"
@@ -71,6 +69,11 @@
   [:input.refresh-games-button {:type :button
                                 :value "Refresh"
                                 :on-click #(ws/send-get-games!)}])
+
+(defn start-game-button []
+  [:input.start-game-button {:type :button
+                             :value "Start game"
+                             :on-click #(ws/send-start-game!)}])
 
 (defn game-list []
   (let [games @(rf/subscribe [:games])]
@@ -98,7 +101,9 @@
   [:div.home-page
    [:h2 "Let's play golf."]
    (if @(rf/subscribe [:game])
-     [draw/game-canvas])])
+     [:div
+      [draw/game-canvas]
+      [start-game-button]])])
 
 (defn page []
   (if-let [page @(rf/subscribe [:common/page])]

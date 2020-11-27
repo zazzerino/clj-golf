@@ -96,10 +96,13 @@
 
 (defn start-game
   ([game]
-   (-> game
-       (shuffle-deck)
-       (deal-starting-hands)
-       (deal-table-card)))
+   (if (:started game)
+     game
+     (-> game
+         (assoc :started true)
+         (shuffle-deck)
+         (deal-starting-hands)
+         (deal-table-card))))
   ([game players]
    (start-game (add-players game players))))
 

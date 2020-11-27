@@ -136,9 +136,16 @@
 
 (defn player-positions [num-players]
   (case num-players
+    1 [:bottom]
     2 [:bottom :top]
     3 [:bottom :left :right]
     4 [:bottom :left :top :right]))
+
+(defn draw-player-hands [loader stage game]
+  (let [players (-> game :players vals)
+        positions (player-positions (count players))]
+    (doseq [[pos player] (zipmap positions players)]
+      (draw-player-hand loader stage (game/get-hand game (:id player)) pos))))
 
 (defn draw-deck [loader stage]
   (let [sprite (make-card-sprite loader "2B" {:x (- (/ width 2)
@@ -167,7 +174,8 @@
   (remove-children (js/document.getElementById id))
   (draw-deck loader stage)
   (draw-table-card loader stage game)
-  (draw-player-hand loader stage (game/get-hand game @(rf/subscribe [:user/id])) :bottom)
+  (draw-player-hands loader stage game)
+  ;(draw-player-hand loader stage (game/get-hand game @(rf/subscribe [:user/id])) :bottom)
   ;(draw-player-hand loader stage cs :bottom)
   ;(draw-player-hand loader stage cs :left)
   ;(draw-player-hand loader stage cs :top)
