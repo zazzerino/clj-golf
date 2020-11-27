@@ -36,8 +36,8 @@
                     (add-player p2))
           game1 (add-players (make-game) [p1 p2])]
       (is (s/valid? ::game/game game0))
-      (is (= 1 (get-in game0 [:players "id0" :turn])))
-      (is (= 2 (get-in game0 [:players "id1" :turn])))
+      (is (= 0 (get-in game0 [:players "id0" :number])))
+      (is (= 1 (get-in game0 [:players "id1" :number])))
       (is (= (dissoc game0 :id) (dissoc game1 :id)))))
 
   (testing "deal cards to players"

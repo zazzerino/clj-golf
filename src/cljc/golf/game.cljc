@@ -14,9 +14,9 @@
 (s/def ::id string?)
 (s/def ::name string?)
 (s/def ::hand (s/coll-of ::card))
-(s/def ::turn (s/and int? (comp not neg?)))
+(s/def ::number (s/and int? (comp not neg?)))
 (s/def ::player (s/keys :req-un [::id ::name ::hand]
-                        :opt-un [::turn]))
+                        :opt-un [::number]))
 (s/def ::players (s/map-of ::id ::player))
 
 (s/def ::table-card ::card)
@@ -56,8 +56,8 @@
    :deck (make-deck)})
 
 (defn add-player [game player]
-  (let [turn (-> game :players count inc)
-        player (assoc player :turn turn)]
+  (let [number (-> game :players count)
+        player (assoc player :number number)]
     (update-in game [:players] conj {(:id player) player})))
 
 (defn add-players [game players]
@@ -102,6 +102,7 @@
      game
      (-> game
          (assoc :started true)
+         (assoc :turn 0)
          (shuffle-deck)
          (deal-starting-hands)
          (deal-table-card))))
@@ -135,4 +136,26 @@
   (-> (case card-source
         :deck (take-from-deck game player-id card-to-replace)
         :table (take-from-table game player-id card-to-replace))
-      (update-in [:turn] inc)))
+      (update :turn inc)))
+
+(defn sort-players-by-turn [game]
+  (sort-by :turn (-> game :players vals)))
+
+(defn get-player-by-number [game number]
+  (first (filter (fn [player]
+                   (= number (:number player)))
+                 (-> game :players vals))))
+
+(defn get-player-number [game player-id]
+  (get-in game [:players player-id :number]))
+
+(defn get-hand-from-number [game number]
+  (-> (get-player-by-number game number) :hand))
+
+(defn shift [seq n]
+  (->> (cycle seq) (drop n) (take (count seq))))
+
+(defn hands-starting-from-number [game number]
+  (let [num-players (-> game :players count)]
+    (for [i (shift (range num-players) number)]
+      (get-hand-from-number game i))))

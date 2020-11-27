@@ -82,3 +82,10 @@
   :players
   (fn [db _]
     (vals (get-in db [:game :players]))))
+
+(rf/reg-sub
+  :player/number
+  :<- [:user/id]
+  :<- [:game]
+  (fn [[user-id game] _]
+    (get-in game [:players user-id :number])))

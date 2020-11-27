@@ -23,15 +23,12 @@
 (def router
   (reitit/router
     [["/" {:name :home
-           :view #'views/home-page
-           ;:controllers [{:start (fn [_] (rf/dispatch [:page/init-home]))}]
-           }]
+           :view #'views/home-page}]
      ["/login" {:name :login
                 :view #'views/login-page}]
      ["/games" {:name :games
                 :view #'views/game-page
-                :controllers [{:start #(ws/send-get-games!)}]
-                }]
+                :controllers [{:start #(ws/send-get-games!)}]}]
      ["/about" {:name :about
                 :view #'views/about-page}]]))
 
@@ -55,9 +52,4 @@
   (ajax/load-interceptors!)
   (rf/dispatch-sync [:initialize-db])
   (mount/start)
-  #_(ws/start-router! (ws/response-handler (r/cursor ws/session [:messages])
-                                         (r/cursor ws/session [:fields])
-                                         (r/cursor ws/session [:errors])))
-  #_(ws/make-websocket! (str "ws://" (.-host js/location) "/ws")
-                      ws/handle-response)
   (mount-components))

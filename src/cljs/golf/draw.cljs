@@ -6,6 +6,10 @@
             [golf.game :as game]
             [golf.websocket :as ws]))
 
+(defn d []
+  (-> @re-frame.db/app-db
+      (dissoc :common/route :navbar-expanded?)))
+
 (def width 500)
 (def height 500)
 
@@ -142,10 +146,11 @@
     4 [:bottom :left :top :right]))
 
 (defn draw-player-hands [loader stage game]
-  (let [players (-> game :players vals)
-        positions (player-positions (count players))]
-    (doseq [[pos player] (zipmap positions players)]
-      (draw-player-hand loader stage (game/get-hand game (:id player)) pos))))
+  (let [number @(rf/subscribe [:player/number])
+        hands (game/hands-starting-from-number game number)
+        positions (player-positions (-> game :players count))]
+    (doseq [[hand pos] (zipmap hands positions)]
+      (draw-player-hand loader stage hand pos))))
 
 (defn draw-deck [loader stage]
   (let [sprite (make-card-sprite loader "2B" {:x (- (/ width 2)
@@ -168,11 +173,6 @@
   (draw-deck loader stage)
   (draw-table-card loader stage game)
   (draw-player-hands loader stage game)
-  ;(draw-player-hand loader stage (game/get-hand game @(rf/subscribe [:user/id])) :bottom)
-  ;(draw-player-hand loader stage cs :bottom)
-  ;(draw-player-hand loader stage cs :left)
-  ;(draw-player-hand loader stage cs :top)
-  ;(draw-player-hand loader stage cs :right)
   (.render renderer stage)
   (attach-view id renderer))
 
@@ -195,9 +195,6 @@
                                (draw id @game (loader) (renderer) (stage))
                                (println "game-canvas updated"))
        :reagent-render (fn []
-                         @game
+                         @game ; this will force a redraw when game is changed
                          [:div.game-canvas
-                          [:div#game-canvas]
-                          #_[:input {:type :button
-                                   :value "Start"
-                                   :on-click #(ws/send-start-game! (:id @game))}]])})))
+                          [:div#game-canvas]])})))
