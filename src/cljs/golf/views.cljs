@@ -103,7 +103,8 @@
    (if @(rf/subscribe [:game])
      [:div
       [draw/game-canvas]
-      [start-game-button]])])
+      (if-not @(rf/subscribe [:game/started?])
+        [start-game-button])])])
 
 (defn page []
   (if-let [page @(rf/subscribe [:common/page])]

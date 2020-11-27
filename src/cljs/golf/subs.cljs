@@ -74,6 +74,12 @@
     (:table-card game)))
 
 (rf/reg-sub
+  :game/started?
+  :<- [:game]
+  (fn [game _]
+    (:started? game)))
+
+(rf/reg-sub
   :games
   (fn [db _]
     (:games db)))

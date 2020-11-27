@@ -1,6 +1,7 @@
 (ns golf.manager
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
+            [clojure.set :as set]
             [golf.game :as game]))
 
 (s/def ::id (s/and string? (comp not empty?)))
@@ -22,12 +23,13 @@
   ([id]
    (make-user id "anon")))
 
-(defn set-name [user name]
-  (assoc user :name name))
-
-(defn add-user [ctx id]
-  (let [user (make-user id)]
-    (swap! ctx update-in [:users] conj {id user})))
+(defn add-user
+  ([ctx id name]
+   (let [user (make-user id name)]
+     (swap! ctx update-in [:users] conj {id user})
+     user))
+  ([ctx id]
+   (add-user ctx id "anon")))
 
 (defn remove-user [ctx id]
   (swap! ctx update-in [:users] dissoc id))
@@ -43,7 +45,12 @@
 
 ;; games
 
-(defn new-game [ctx user-id]
+(defn new-game [ctx]
+  (let [game (game/make-game)]
+    (swap! ctx update-in [:games] conj {(:id game) game})
+    game))
+
+#_(defn new-game [ctx user-id]
   (let [user (get-user-by-id ctx user-id)
         name (if (:name user) (:name user) "anon")
         game (-> (game/make-game)
@@ -55,11 +62,8 @@
                     (assoc-in [:games game-id] game)))
     game))
 
-(defn add-game [ctx game]
-  (swap! ctx update-in [:games] conj {(:id game) game}))
-
-(defn remove-game [ctx game]
-  (swap! ctx update-in [:games] dissoc (:id game)))
+(defn remove-game [ctx game-id]
+  (swap! ctx update-in [:games] dissoc game-id))
 
 (defn get-game-by-id [ctx id]
   (get-in @ctx [:games id]))
@@ -79,7 +83,7 @@
                  (game/start-game))]
     (swap! ctx assoc-in [:games id] game)))
 
-(defn prettify-game [game]
+(defn- prettify-game [game]
   (-> (select-keys game [:id :players])
       (update-in [:players] vals)))
 
@@ -88,3 +92,8 @@
 
 (defn get-player-ids [ctx game-id]
   (keys (get-in @ctx [:games game-id :players])))
+
+(defn has-active-players? [ctx game-id]
+  (let [user-ids (-> @ctx :users keys)
+        player-ids (get-player-ids ctx game-id)]
+    (not (empty? (set/intersection (set user-ids) (set player-ids))))))

@@ -151,13 +151,6 @@
     (doseq [[hand pos] (zipmap hands positions)]
       (draw-player-hand loader stage hand pos))))
 
-#_(defn draw-player-hands [loader stage game]
-  (let [number @(rf/subscribe [:player/turn])
-        hands (game/hands-starting-from-number game number)
-        positions (hand-positions (-> game :players count))]
-    (doseq [[hand pos] (zipmap hands positions)]
-      (draw-player-hand loader stage hand pos))))
-
 (defn draw-deck [loader stage]
   (let [sprite (make-card-sprite loader "2B" {:x (- (/ width 2)
                                                     (* 0.5
