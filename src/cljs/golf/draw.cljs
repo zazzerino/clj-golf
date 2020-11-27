@@ -138,23 +138,25 @@
     (set-pos container coord)
     (.addChild stage container)))
 
-(defn player-positions [num-players]
+(defn hand-positions [num-players]
   (case num-players
     1 [:bottom]
     2 [:bottom :top]
     3 [:bottom :left :right]
     4 [:bottom :left :top :right]))
 
-(defn draw-player-hands [loader stage game]
+#_(defn draw-player-hands [loader stage game]
   (let [number @(rf/subscribe [:player/number])
         hands (game/hands-starting-from-number game number)
-        positions (player-positions (-> game :players count))]
+        positions (hand-positions (-> game :players count))]
     (doseq [[hand pos] (zipmap hands positions)]
       (draw-player-hand loader stage hand pos))))
 
 (defn draw-deck [loader stage]
   (let [sprite (make-card-sprite loader "2B" {:x (- (/ width 2)
-                                                    (* (/ 1 2) card-scale-x card-width))
+                                                    (* 0.5
+                                                       card-scale-x
+                                                       card-width))
                                               :y (/ height 2)})]
     (.set sprite.anchor 0.5 0.5)
     (.addChild stage sprite)))
@@ -172,7 +174,7 @@
   (remove-children (js/document.getElementById id))
   (draw-deck loader stage)
   (draw-table-card loader stage game)
-  (draw-player-hands loader stage game)
+  ;(draw-player-hands loader stage game)
   (.render renderer stage)
   (attach-view id renderer))
 

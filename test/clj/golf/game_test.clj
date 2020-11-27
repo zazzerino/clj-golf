@@ -1,15 +1,16 @@
 (ns golf.game-test
   (:require [clojure.test :refer :all]
             [clojure.spec.alpha :as s]
+            [clojure.spec.gen.alpha :as gen]
             [golf.game :refer :all :as game]))
 
 (deftest test-game
-  (testing "create a deck"
+  (testing "make-deck"
     (let [deck (make-deck)]
       (is (s/valid? ::game/deck deck))
       (is (= 52 (count deck)))))
 
-  (testing "deal cards from a deck"
+  (testing "deal-card"
     (let [deck (make-deck)
           {:keys [card deck]} (deal-card deck)]
       (is (s/valid? ::game/card card))
@@ -17,18 +18,18 @@
       (is (= card {:rank :ace :suit :clubs}))
       (is (= 51 (count deck)))))
 
-  (testing "create a player"
-    (let [player (make-player "abcd1234" "Bob")]
-    (is (s/valid? ::game/player player))
-    (is (= "abcd1234" (:id player)))
-    (is (= "Bob" (:name player)))
-    (is (= "anon" (:name (make-player "id1"))))))
+  (testing "make-player"
+    (let [player (make-player "id0" "Bob")]
+      (is (s/valid? ::game/player player))
+      (is (= "id0" (:id player)))
+      (is (= "Bob" (:name player)))
+      (is (= "anon" (:name (make-player "id1"))))))
 
-  (testing "make a game"
+  (testing "make-game"
     (let [game (make-game)]
       (s/valid? ::game/game game)))
 
-  (testing "add players"
+  (testing "add-player, add-players"
     (let [p1 (make-player "id0")
           p2 (make-player "id1" "Bob")
           game0 (-> (make-game)
@@ -36,231 +37,131 @@
                     (add-player p2))
           game1 (add-players (make-game) [p1 p2])]
       (is (s/valid? ::game/game game0))
-      (is (= 0 (get-in game0 [:players "id0" :number])))
-      (is (= 1 (get-in game0 [:players "id1" :number])))
+      (is (= 0 (get-in game0 [:players "id0" :turn])))
+      (is (= 1 (get-in game0 [:players "id1" :turn])))
       (is (= (dissoc game0 :id) (dissoc game1 :id)))))
 
-  (testing "deal cards to players"
+  (testing "deal-card-to-player"
     (let [player-id "a1b2c3"
-          p (make-player player-id "Charlie")
-          g (-> (make-game)
-                (add-player p)
-                (deal-card-to-player player-id))]
-      (is (= 51 (count (:deck g))))
-      (is (s/valid? ::game/hand (get-in g [:players player-id :hand])))
-      (is (= {:rank :ace :suit :clubs} (first (get-in g [:players player-id :hand]))))))
+          player (make-player player-id "Charlie")
+          game (-> (make-game)
+                   (add-player player)
+                   (deal-card-to-player player-id))]
+      (is (= 51 (count (:deck game))))
+      (is (s/valid? ::game/hand (get-in game [:players player-id :hand])))
+      (is (= {:rank :ace :suit :clubs} (first (get-in game [:players player-id :hand]))))))
 
-  (testing "init game"
-    (is (s/valid? ::game/game (start-game (make-game)
-                                          [(make-player "id0" "name0")
-                                           (make-player "id1" "name1")
-                                           (make-player "id2" "name2")]))))
+  (testing "give-card"
+    (let [card {:rank :ace :suit :spades}
+          p1 (make-player "id0")
+          p2 (give-card p1 card)]
+      (is (empty? (:hand p1)))
+      (is (= card (get-in p2 [:hand 0])))))
 
-  (testing "take table card"
-    (let [game {:id "9227e3ef-26fb-42f4-bd0b-dbaf67b2d3e1",
-                :players {"id0" {:id "id0",
-                                 :name "name0",
-                                 :hand [{:rank :ace, :suit :clubs}
-                                        {:rank :5, :suit :hearts}
-                                        {:rank :8, :suit :hearts}
-                                        {:rank :queen, :suit :spades}
-                                        {:rank :10, :suit :spades}
-                                        {:rank :jack, :suit :diamonds}]},
-                          "id1" {:id "id1",
-                                 :name "name1",
-                                 :hand [{:rank :3, :suit :hearts}
-                                        {:rank :6, :suit :diamonds}
-                                        {:rank :3, :suit :spades}
-                                        {:rank :2, :suit :clubs}
-                                        {:rank :4, :suit :clubs}
-                                        {:rank :queen, :suit :diamonds}]}},
-                :deck '({:rank :10, :suit :hearts}
-                        {:rank :ace, :suit :hearts}
-                        {:rank :9, :suit :diamonds}
-                        {:rank :king, :suit :clubs}
-                        {:rank :3, :suit :diamonds}
-                        {:rank :2, :suit :diamonds}
-                        {:rank :jack, :suit :hearts}
-                        {:rank :6, :suit :spades}
-                        {:rank :king, :suit :diamonds}
-                        {:rank :queen, :suit :hearts}
-                        {:rank :jack, :suit :spades}
-                        {:rank :king, :suit :hearts}
-                        {:rank :7, :suit :spades}
-                        {:rank :2, :suit :spades}
-                        {:rank :6, :suit :clubs}
-                        {:rank :2, :suit :hearts}
-                        {:rank :ace, :suit :spades}
-                        {:rank :queen, :suit :clubs}
-                        {:rank :7, :suit :hearts}
-                        {:rank :ace, :suit :diamonds}
-                        {:rank :8, :suit :diamonds}
-                        {:rank :9, :suit :clubs}
-                        {:rank :8, :suit :spades}
-                        {:rank :6, :suit :hearts}
-                        {:rank :4, :suit :spades}
-                        {:rank :9, :suit :hearts}
-                        {:rank :4, :suit :diamonds}
-                        {:rank :3, :suit :clubs}
-                        {:rank :7, :suit :diamonds}
-                        {:rank :5, :suit :spades}
-                        {:rank :jack, :suit :clubs}
-                        {:rank :king, :suit :spades}
-                        {:rank :8, :suit :clubs}
-                        {:rank :5, :suit :clubs}
-                        {:rank :4, :suit :hearts}
-                        {:rank :5, :suit :diamonds}
-                        {:rank :10, :suit :clubs}
-                        {:rank :7, :suit :clubs}
-                        {:rank :10, :suit :diamonds}),
-                :turn 0,
-                :table-card {:rank :9, :suit :spades}}]
+  (testing "deal-card-to-player"
+    (let [game (-> (make-game)
+                   (add-player (make-player "id0"))
+                   (deal-card-to-player "id0"))]
       (is (s/valid? ::game/game game))
-      (let [game' (take-from-table game "id0" {:rank :5 :suit :hearts})]
-        (is (s/valid? ::game/game game'))
-        (is (= (:table-card game') {:rank :5 :suit :hearts}))
-        (is (= {:rank :9 :suit :spades} (get-in game' [:players "id0" :hand 1]))))))
+      (is (= {:rank :ace :suit :clubs} (get-in game [:players "id0" :hand 0])))))
 
-  (testing "take table card"
-    (let [game {:id "9227e3ef-26fb-42f4-bd0b-dbaf67b2d3e1",
-                :players {"id0" {:id "id0",
-                                 :name "name0",
-                                 :hand [{:rank :ace, :suit :clubs}
-                                        {:rank :5, :suit :hearts}
-                                        {:rank :8, :suit :hearts}
-                                        {:rank :queen, :suit :spades}
-                                        {:rank :10, :suit :spades}
-                                        {:rank :jack, :suit :diamonds}]},
-                          "id1" {:id "id1",
-                                 :name "name1",
-                                 :hand [{:rank :3, :suit :hearts}
-                                        {:rank :6, :suit :diamonds}
-                                        {:rank :3, :suit :spades}
-                                        {:rank :2, :suit :clubs}
-                                        {:rank :4, :suit :clubs}
-                                        {:rank :queen, :suit :diamonds}]}},
-                :deck '({:rank :10, :suit :hearts}
-                        {:rank :ace, :suit :hearts}
-                        {:rank :9, :suit :diamonds}
-                        {:rank :king, :suit :clubs}
-                        {:rank :3, :suit :diamonds}
-                        {:rank :2, :suit :diamonds}
-                        {:rank :jack, :suit :hearts}
-                        {:rank :6, :suit :spades}
-                        {:rank :king, :suit :diamonds}
-                        {:rank :queen, :suit :hearts}
-                        {:rank :jack, :suit :spades}
-                        {:rank :king, :suit :hearts}
-                        {:rank :7, :suit :spades}
-                        {:rank :2, :suit :spades}
-                        {:rank :6, :suit :clubs}
-                        {:rank :2, :suit :hearts}
-                        {:rank :ace, :suit :spades}
-                        {:rank :queen, :suit :clubs}
-                        {:rank :7, :suit :hearts}
-                        {:rank :ace, :suit :diamonds}
-                        {:rank :8, :suit :diamonds}
-                        {:rank :9, :suit :clubs}
-                        {:rank :8, :suit :spades}
-                        {:rank :6, :suit :hearts}
-                        {:rank :4, :suit :spades}
-                        {:rank :9, :suit :hearts}
-                        {:rank :4, :suit :diamonds}
-                        {:rank :3, :suit :clubs}
-                        {:rank :7, :suit :diamonds}
-                        {:rank :5, :suit :spades}
-                        {:rank :jack, :suit :clubs}
-                        {:rank :king, :suit :spades}
-                        {:rank :8, :suit :clubs}
-                        {:rank :5, :suit :clubs}
-                        {:rank :4, :suit :hearts}
-                        {:rank :5, :suit :diamonds}
-                        {:rank :10, :suit :clubs}
-                        {:rank :7, :suit :clubs}
-                        {:rank :10, :suit :diamonds}),
-                :turn 0,
-                :table-card {:rank :9, :suit :spades}}]
+  (testing "deal-starting-hands"
+    (let [game0 (make-game)
+          p1-hand (->> game0 :deck (take-nth 2) (take 6))
+          p2-hand (->> game0 :deck (drop 1) (take-nth 2) (take 6))
+          game1 (-> game0
+                    (add-players [(make-player "id0")
+                                  (make-player "id1")])
+                    (deal-starting-hands))]
+      (is (s/valid? ::game/game game1))
+      (is (= p1-hand (get-in game1 [:players "id0" :hand])))
+      (is (= p2-hand (get-in game1 [:players "id1" :hand])))))
+
+  (testing "deal-table-card"
+    (let [game (-> (make-game)
+                   (add-players [(make-player "id0")
+                                 (make-player "id1")])
+                   (deal-table-card))]
       (is (s/valid? ::game/game game))
-      (let [top-of-deck (first (:deck game))
-            game' (take-from-deck game "id0" {:rank :5 :suit :hearts})]
-        (is (s/valid? ::game/game game'))
-        (is (= {:rank :5 :suit :hearts} (:table-card game')))
-        (is (= (-> game' :deck count) (-> game :deck count dec)))
-        (is (= top-of-deck (get-in game' [:players "id0" :hand 1])))
-        )))
+      (is (= (:table-card game) {:rank :ace :suit :clubs}))))
 
-  (testing "player move"
-    (let [game {:id "9227e3ef-26fb-42f4-bd0b-dbaf67b2d3e1",
-                :players {"id0" {:id "id0",
-                                 :name "name0",
-                                 :hand [{:rank :ace, :suit :clubs}
-                                        {:rank :5, :suit :hearts}
-                                        {:rank :8, :suit :hearts}
-                                        {:rank :queen, :suit :spades}
-                                        {:rank :10, :suit :spades}
-                                        {:rank :jack, :suit :diamonds}]},
-                          "id1" {:id "id1",
-                                 :name "name1",
-                                 :hand [{:rank :3, :suit :hearts}
-                                        {:rank :6, :suit :diamonds}
-                                        {:rank :3, :suit :spades}
-                                        {:rank :2, :suit :clubs}
-                                        {:rank :4, :suit :clubs}
-                                        {:rank :queen, :suit :diamonds}]}},
-                :deck '({:rank :10, :suit :hearts}
-                        {:rank :ace, :suit :hearts}
-                        {:rank :9, :suit :diamonds}
-                        {:rank :king, :suit :clubs}
-                        {:rank :3, :suit :diamonds}
-                        {:rank :2, :suit :diamonds}
-                        {:rank :jack, :suit :hearts}
-                        {:rank :6, :suit :spades}
-                        {:rank :king, :suit :diamonds}
-                        {:rank :queen, :suit :hearts}
-                        {:rank :jack, :suit :spades}
-                        {:rank :king, :suit :hearts}
-                        {:rank :7, :suit :spades}
-                        {:rank :2, :suit :spades}
-                        {:rank :6, :suit :clubs}
-                        {:rank :2, :suit :hearts}
-                        {:rank :ace, :suit :spades}
-                        {:rank :queen, :suit :clubs}
-                        {:rank :7, :suit :hearts}
-                        {:rank :ace, :suit :diamonds}
-                        {:rank :8, :suit :diamonds}
-                        {:rank :9, :suit :clubs}
-                        {:rank :8, :suit :spades}
-                        {:rank :6, :suit :hearts}
-                        {:rank :4, :suit :spades}
-                        {:rank :9, :suit :hearts}
-                        {:rank :4, :suit :diamonds}
-                        {:rank :3, :suit :clubs}
-                        {:rank :7, :suit :diamonds}
-                        {:rank :5, :suit :spades}
-                        {:rank :jack, :suit :clubs}
-                        {:rank :king, :suit :spades}
-                        {:rank :8, :suit :clubs}
-                        {:rank :5, :suit :clubs}
-                        {:rank :4, :suit :hearts}
-                        {:rank :5, :suit :diamonds}
-                        {:rank :10, :suit :clubs}
-                        {:rank :7, :suit :clubs}
-                        {:rank :10, :suit :diamonds}),
-                :turn 0,
-                :table-card {:rank :9, :suit :spades}}]
-      (let [game' (player-move game {:player-id "id1"
-                                     :card-source :table
-                                     :card-to-replace {:rank :2 :suit :clubs}})]
-        (is (s/valid? ::game/game game'))
-        (is (= 1 (:turn game')))
-        (is (= {:rank :9 :suit :spades} (get-in game' [:players "id1" :hand 3])))
-        (is (= {:rank :2 :suit :clubs} (:table-card game'))))
-      (let [game' (player-move game {:player-id "id0"
-                                     :card-source :deck
-                                     :card-to-replace {:rank :jack :suit :diamonds}})]
-        (is (s/valid? ::game/game game'))
-        (is (= 1 (:turn game')))
-        (is (= (:table-card game') {:rank :jack :suit :diamonds}))
-        (is (= {:rank :10 :suit :hearts} (get-in game' [:players "id0" :hand 5])))
-        )))
+  (testing "shuffle-deck"
+    (let [game (-> (make-game)
+                   (shuffle-deck))]
+      (is (s/valid? ::game/game game))))
+
+  (testing "start-game"
+    (let [game (-> (make-game)
+                   (start-game [(make-player "id0" "name0")
+                                (make-player "id1" "name1")
+                                (make-player "id2" "name2")]))]
+      (is (s/valid? ::game/game game))
+      (is ((comp not nil?) (:table-card game)))
+      (is (true? (:started? game)))
+      (is (= 0 (:round game)))))
+
+  (testing "replace-card"
+    (let [hand0 [{:rank :ace, :suit :hearts}
+                 {:rank :2, :suit :diamonds}
+                 {:rank :9, :suit :clubs}
+                 {:rank :9, :suit :spades}
+                 {:rank :6, :suit :clubs}
+                 {:rank :10, :suit :spades}]
+          card {:rank :3 :suit :clubs}
+          hand1 (replace-card hand0 {:rank :2 :suit :diamonds} card)]
+      (is (s/valid? ::game/hand hand0))
+      (is (not= hand0 hand1))
+      (is (= card (get hand1 1)))))
+
+  (testing "get-hand"
+    (let [game (-> (make-game)
+                   (start-game [(make-player "id0")
+                                (make-player "id1")]))]
+      (is (s/valid? ::game/hand (get-hand game "id0")))
+      (is (not= (get-hand game "id0") (get-hand game "id1")))))
+
+  (testing "take-from-table"
+    (let [game0 (-> (make-game)
+                    (start-game [(make-player "id0")
+                                 (make-player "id1")]))
+          first-card (first (get-hand game0 "id0"))
+          table-card (:table-card game0)
+          game1 (take-from-table game0 "id0" first-card)]
+      (is (s/valid? ::game/game game1))
+      (is (= table-card (get-in game1 [:players "id0" :hand 0])))
+      (is (= first-card (:table-card game1)))))
+
+  (testing "take-from-deck"
+    (let [game0 (-> (make-game)
+                    (start-game [(make-player "id0")
+                                 (make-player "id1")]))
+          first-card (first (get-hand game0 "id0"))
+          deck-card (-> game0 :deck first)
+          game1 (take-from-deck game0 "id0" first-card)]
+      (is (s/valid? ::game/game game1))
+      (is (= deck-card (get-in game1 [:players "id0" :hand 0])))
+      (is (= first-card (:table-card game1)))
+      (is (not= (-> game0 :deck first)
+                (-> game1 :deck first)))))
+
+  (testing "player-move"
+    ; take from table
+    (let [game0 (-> (make-game)
+                    (start-game [(make-player "id0")
+                                 (make-player "id1")]))
+          second-card (get-in game0 [:players "id0" :hand 1])
+          game1 (player-move game0 "id0" :table second-card)]
+      (is (s/valid? ::game/game game1))
+      (is (= second-card (:table-card game1)))
+      (is (= (:table-card game0) (get-in game1 [:players "id0" :hand 1]))))
+
+    ; take from deck
+    (let [game0 (-> (make-game)
+                    (start-game [(make-player "id0")
+                                 (make-player "id1")]))
+          second-card (get-in game0 [:players "id0" :hand 1])
+          game1 (player-move game0 "id0" :deck second-card)]
+      (is (s/valid? ::game/game game1))
+      (is (= second-card (:table-card game1)))
+      (is (= (-> game0 :deck first) (get-in game1 [:players "id0" :hand 1])))))
   )

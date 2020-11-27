@@ -14,21 +14,21 @@
 (s/def ::id string?)
 (s/def ::name string?)
 (s/def ::hand (s/coll-of ::card))
-(s/def ::number (s/and int? (comp not neg?)))
+(s/def ::turn (s/and int? (comp not neg?)))
 (s/def ::player (s/keys :req-un [::id ::name ::hand]
-                        :opt-un [::number]))
+                        :opt-un [::turn]))
 (s/def ::players (s/map-of ::id ::player))
 
 (s/def ::table-card ::card)
 (s/def ::scratch-card ::card)
 (s/def ::card-source #{:table :deck})
-(s/def ::turn (s/and integer? (comp not neg?)))
+(s/def ::round (s/and integer? (comp not neg?)))
 (s/def ::started? boolean?)
 
 (s/def ::game (s/keys :req-un [::players ::deck]
-                      :opt-un [::table-card ::turn ::started?]))
+                      :opt-un [::table-card ::round ::started?]))
 
-(defn gen-uuid []
+(defn- gen-uuid []
   #?(:clj (str (UUID/randomUUID))
      :cljs (str (random-uuid))))
 
@@ -56,8 +56,8 @@
    :deck (make-deck)})
 
 (defn add-player [game player]
-  (let [number (-> game :players count)
-        player (assoc player :number number)]
+  (let [turn (-> game :players count)
+        player (assoc player :turn turn)]
     (update-in game [:players] conj {(:id player) player})))
 
 (defn add-players [game players]
@@ -98,14 +98,12 @@
 
 (defn start-game
   ([game]
-   (if (:started game)
-     game
-     (-> game
-         (assoc :started true)
-         (assoc :turn 0)
-         (shuffle-deck)
-         (deal-starting-hands)
-         (deal-table-card))))
+   (-> game
+       (assoc :started? true)
+       (assoc :round 0)
+       (shuffle-deck)
+       (deal-starting-hands)
+       (deal-table-card)))
   ([game players]
    (start-game (add-players game players))))
 
@@ -132,30 +130,18 @@
         (assoc :table-card card-to-replace)
         (assoc :deck deck))))
 
-(defn player-move [game {:keys [player-id card-source card-to-replace]}]
+(defn player-move [game player-id card-source card-to-replace]
   (-> (case card-source
         :deck (take-from-deck game player-id card-to-replace)
         :table (take-from-table game player-id card-to-replace))
-      (update :turn inc)))
+      (update :round inc)))
 
-(defn sort-players-by-turn [game]
+(defn players-by-turn [game]
   (sort-by :turn (-> game :players vals)))
 
-(defn get-player-by-number [game number]
-  (first (filter (fn [player]
-                   (= number (:number player)))
-                 (-> game :players vals))))
-
-(defn get-player-number [game player-id]
-  (get-in game [:players player-id :number]))
-
-(defn get-hand-from-number [game number]
-  (-> (get-player-by-number game number) :hand))
-
-(defn shift [seq n]
+(defn- shift [seq n]
   (->> (cycle seq) (drop n) (take (count seq))))
 
-(defn hands-starting-from-number [game number]
-  (let [num-players (-> game :players count)]
-    (for [i (shift (range num-players) number)]
-      (get-hand-from-number game i))))
+(defn hands-starting-at-turn [game turn]
+  (-> (map :hand (players-by-turn game))
+      (shift turn)))
