@@ -10,13 +10,13 @@
   (-> @re-frame.db/app-db
       (dissoc :common/route :navbar-expanded?)))
 
-(def width 500)
-(def height 500)
+(def width 600)
+(def height 600)
 
 (def card-width 240)
 (def card-height 336)
-(def card-scale-x 0.2)
-(def card-scale-y 0.2)
+(def card-scale-x (/ width 2000))
+(def card-scale-y (/ height 2000))
 
 (defn- remove-children [elem]
   (doseq [child elem.children]
@@ -97,9 +97,12 @@
 
 (defn make-card-sprite [loader name {:keys [x y angle]
                                      :or {x 0 y 0 angle 0}}]
-  (doto (pixi/Sprite. (get-texture loader name))
-    (set-pos {:x x :y y :angle angle})
-    (-> .-scale (.set card-scale-x card-scale-y))))
+  (let [sprite (pixi/Sprite. (get-texture loader name))]
+    (set-pos sprite {:x x :y y :angle angle})
+    (.set sprite.scale card-scale-x card-scale-y)
+    (set! sprite.interactive true)
+    (.on sprite "click" #(rf/dispatch [:card/click name]))
+    sprite))
 
 (defn make-hand-container [loader cards {:keys [x y x-spacing y-spacing angle]
                                          :or {x 0 y 0 x-spacing 5 y-spacing 5 angle 0}}]
@@ -109,7 +112,9 @@
             y (if (< i 3)
                 0
                 (-> (* card-height card-scale-y) (+ y-spacing)))
-            card-sprite (make-card-sprite loader (texture-name card) {:x x :y y})]
+            card-sprite (make-card-sprite loader
+                                          (texture-name card)
+                                          {:x x :y y})]
         (.addChild container card-sprite)))
     (set-pos container {:x x :y y})
     (set! container.pivot.x (/ container.width 2))
@@ -155,7 +160,8 @@
   (let [sprite (make-card-sprite loader "2B" {:x (- (/ width 2)
                                                     (* 0.5
                                                        card-scale-x
-                                                       card-width))
+                                                       card-width)
+                                                    2)
                                               :y (/ height 2)})]
     (.set sprite.anchor 0.5 0.5)
     (.addChild stage sprite)))
@@ -164,7 +170,8 @@
   (if-let [table-card (:table-card game)]
     (let [sprite (make-card-sprite loader (texture-name table-card)
                                    {:x (+ (/ width 2)
-                                          (* (/ 1 2) card-scale-x card-width))
+                                          (* (/ 1 2) card-scale-x card-width)
+                                          2)
                                     :y (/ height 2)})]
       (.set sprite.anchor 0.5 0.5)
       (.addChild stage sprite))))

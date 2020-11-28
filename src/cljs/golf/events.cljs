@@ -76,3 +76,9 @@
   :set-games
   (fn [db [_ games]]
     (assoc db :games games)))
+
+(rf/reg-event-db
+  :card/click
+  (fn [db [_ card]]
+    (println "card clicked:" card)
+    db))

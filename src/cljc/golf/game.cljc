@@ -114,19 +114,19 @@
   (get-in game [:players player-id :hand]))
 
 (defn take-from-table [game player-id card-to-replace]
-  (let [hand (get-hand game player-id)
-        table-card (:table-card game)
-        new-hand (replace-card hand card-to-replace table-card)]
+  (let [table-card (:table-card game)
+        hand (-> (get-hand game player-id)
+                 (replace-card card-to-replace table-card))]
     (-> game
-        (assoc-in [:players player-id :hand] new-hand)
+        (assoc-in [:players player-id :hand] hand)
         (assoc :table-card card-to-replace))))
 
 (defn take-from-deck [game player-id card-to-replace]
-  (let [hand (get-hand game player-id)
-        {:keys [card deck]} (deal-card (:deck game))
-        new-hand (replace-card hand card-to-replace card)]
+  (let [{:keys [card deck]} (deal-card (:deck game))
+        hand (-> (get-hand game player-id)
+                 (replace-card card-to-replace card))]
     (-> game
-        (assoc-in [:players player-id :hand] new-hand)
+        (assoc-in [:players player-id :hand] hand)
         (assoc :table-card card-to-replace)
         (assoc :deck deck))))
 

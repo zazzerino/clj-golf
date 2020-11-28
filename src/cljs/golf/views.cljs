@@ -99,7 +99,7 @@
 
 (defn home-page []
   [:div.home-page
-   [:h2 "Let's play golf."]
+   [:h2 "Golf"]
    (if @(rf/subscribe [:game])
      [:div
       [draw/game-canvas]
