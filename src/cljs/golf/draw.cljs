@@ -2,13 +2,9 @@
   (:require ["pixi.js" :as pixi]
             [clojure.string :as string]
             [reagent.core :as reagent]
-            [re-frame.core :as rf]
+            [re-frame.core :as re-frame]
             [golf.game :as game]
             [golf.websocket :as ws]))
-
-(defn d []
-  (-> @re-frame.db/app-db
-      (dissoc :common/route :navbar-expanded?)))
 
 (def width 600)
 (def height 600)
@@ -18,9 +14,10 @@
 (def card-scale-x (/ width 2000))
 (def card-scale-y (/ height 2000))
 
-(defn- remove-children [elem]
-  (doseq [child elem.children]
-    (.removeChild elem child)))
+(defn- remove-children [id]
+  (let [elem (.getElementById js/document id)]
+    (doseq [child elem.children]
+      (.removeChild elem child))))
 
 (def ^:private rank-texture-names
   (zipmap game/ranks
@@ -34,7 +31,14 @@
         suit (suit-texture-names (:suit card))]
     (str rank suit)))
 
-(def card-files
+(defn- texture-name->card [texture-name]
+  (let [[rank suit] (seq texture-name)
+        ranks (clojure.set/map-invert rank-texture-names)
+        suits (clojure.set/map-invert suit-texture-names)]
+    {:rank (ranks rank)
+     :suit (suits suit)}))
+
+(def ^:private card-files
   ; downloaded from www.me.uk/cards, copyright Adrian Kennard
   ["img/cards/svg/1B.svg", "img/cards/svg/2J.svg", "img/cards/svg/4C.svg",
    "img/cards/svg/5H.svg", "img/cards/svg/7C.svg", "img/cards/svg/8H.svg",
@@ -56,10 +60,10 @@
    "img/cards/svg/8D.svg", "img/cards/svg/9S.svg", "img/cards/svg/JD.svg",
    "img/cards/svg/KS.svg", "img/cards/svg/TD.svg"])
 
-(defn make-renderer  [{:keys [width height background-color]
-                       :or {width 256 height 256 background-color 0xDDDDDD}}]
-  (pixi/Renderer. #js{"width" width
-                      "height" height
+(defn make-renderer [{:keys [width height background-color]
+                      :or   {width 256 height 256 background-color 0xDDDDDD}}]
+  (pixi/Renderer. #js{"width"           width
+                      "height"          height
                       "backgroundColor" background-color}))
 
 (defn card-name [filename]
@@ -88,24 +92,28 @@
 (defn get-texture [loader name]
   (-> (aget loader.resources name) .-texture))
 
-(defn set-pos [sprite {:keys [x y angle]
-                       :or {x 0 y 0 angle 0}}]
+(defn set-pos! [sprite {:keys [x y angle]
+                        :or   {x 0 y 0 angle 0}}]
   (set! sprite.x x)
   (set! sprite.y y)
   (set! sprite.angle angle)
   sprite)
 
+(defn on-card-click [name]
+  (let [card (texture-name->card name)]
+    (re-frame/dispatch [:card/click card])))
+
 (defn make-card-sprite [loader name {:keys [x y angle]
-                                     :or {x 0 y 0 angle 0}}]
+                                     :or   {x 0 y 0 angle 0}}]
   (let [sprite (pixi/Sprite. (get-texture loader name))]
-    (set-pos sprite {:x x :y y :angle angle})
+    (set-pos! sprite {:x x :y y :angle angle})
     (.set sprite.scale card-scale-x card-scale-y)
     (set! sprite.interactive true)
-    (.on sprite "click" #(rf/dispatch [:card/click name]))
+    (.on sprite "click" #(on-card-click name))
     sprite))
 
 (defn make-hand-container [loader cards {:keys [x y x-spacing y-spacing angle]
-                                         :or {x 0 y 0 x-spacing 5 y-spacing 5 angle 0}}]
+                                         :or   {x 0 y 0 x-spacing 5 y-spacing 5 angle 0}}]
   (let [container (pixi/Container.)]
     (doseq [[i card] (map-indexed vector cards)]
       (let [x (-> (* card-width card-scale-x) (+ x-spacing) (* (mod i 3)))
@@ -116,32 +124,26 @@
                                           (texture-name card)
                                           {:x x :y y})]
         (.addChild container card-sprite)))
-    (set-pos container {:x x :y y})
+    (set-pos! container {:x x :y y})
     (set! container.pivot.x (/ container.width 2))
     (set! container.pivot.y (/ container.height 2))
     (set! container.angle angle)
     container))
 
-(defn player-hand-coord [pos]
+(defn hand-coord [pos]
   (case pos
-    :bottom {:x (/ width 2)
-             :y (- height (* 1.1 card-height card-scale-y))
+    :bottom {:x     (/ width 2)
+             :y     (- height (* 1.1 card-height card-scale-y))
              :angle 0}
-    :left {:x (* 1.5 card-width card-scale-x)
-           :y (/ height 2)
+    :left {:x     (* 1.5 card-width card-scale-x)
+           :y     (/ height 2)
            :angle 90}
-    :top {:x (/ width 2)
-          :y (* 1.1 card-height card-scale-y)
+    :top {:x     (/ width 2)
+          :y     (* 1.1 card-height card-scale-y)
           :angle 180}
-    :right {:x (- width (* 1.5 card-width card-scale-x))
-            :y (/ height 2)
+    :right {:x     (- width (* 1.5 card-width card-scale-x))
+            :y     (/ height 2)
             :angle 270}))
-
-(defn draw-player-hand [loader stage cards pos]
-  (let [container (make-hand-container loader cards {})
-        coord (player-hand-coord pos)]
-    (set-pos container coord)
-    (.addChild stage container)))
 
 (defn hand-positions [num-players]
   (case num-players
@@ -149,6 +151,12 @@
     2 [:bottom :top]
     3 [:bottom :left :right]
     4 [:bottom :left :top :right]))
+
+(defn draw-player-hand [loader stage cards pos]
+  (let [container (make-hand-container loader cards {})
+        coord (hand-coord pos)]
+    (set-pos! container coord)
+    (.addChild stage container)))
 
 (defn draw-player-hands [loader stage game turn]
   (let [hands (game/hands-starting-at-turn game turn)
@@ -176,11 +184,21 @@
       (.set sprite.anchor 0.5 0.5)
       (.addChild stage sprite))))
 
+(defn draw-names [stage game]
+  (let [positions (hand-positions (-> game :players count))]
+    (doseq [[player pos] (zipmap (game/players-by-turn game) positions)]
+      (let [text (pixi/Text. (:name player) #js{"fontSize" 18
+                                                "fill" "limegreen"})]
+        (set-pos! text (hand-coord pos))
+        (.set text.anchor 0.5 0.5)
+        (.addChild stage text)))))
+
 (defn draw [id game loader renderer stage turn]
-  (remove-children (js/document.getElementById id))
+  (remove-children id)
   (draw-deck loader stage)
   (draw-table-card loader stage game)
   (draw-player-hands loader stage game turn)
+  (draw-names stage game)
   (.render renderer stage)
   (attach-view id renderer))
 
@@ -191,19 +209,19 @@
 
 (defn game-canvas []
   (let [id "game-canvas"
-        game (rf/subscribe [:game])
-        turn (rf/subscribe [:player/turn])
+        game (re-frame/subscribe [:game])
+        turn (re-frame/subscribe [:player/turn])
         loader (fn [] pixi/Loader.shared)
         renderer #(make-renderer {:width width :height height})
         stage #(pixi/Container.)]
     (reagent/create-class
-      {:component-did-mount (fn []
-                              (init-graphics id @game (loader) (renderer) (stage) @turn)
-                              (println "game-canvas mounted"))
+      {:component-did-mount  (fn []
+                               (init-graphics id @game (loader) (renderer) (stage) @turn)
+                               (println "game-canvas mounted"))
        :component-did-update (fn []
                                (draw id @game (loader) (renderer) (stage) @turn)
                                (println "game-canvas updated"))
-       :reagent-render (fn []
-                         @game ; this will force a redraw when game is changed
-                         [:div.game-canvas
-                          [:div#game-canvas]])})))
+       :reagent-render       (fn []
+                               @game                        ; this will force a redraw when game is changed
+                               [:div.game-canvas
+                                [:div#game-canvas]])})))

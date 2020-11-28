@@ -145,3 +145,48 @@
 (defn hands-starting-at-turn [game turn]
   (-> (map :hand (players-by-turn game))
       (shift turn)))
+
+(defn golf-value [rank]
+  (let [rank-vals {:king 0
+                   :ace 1
+                   :two 2
+                   :three 3
+                   :four 4
+                   :five 5
+                   :six 6
+                   :seven 7
+                   :eight 8
+                   :nine 9
+                   :ten 10
+                   :jack 10
+                   :queen 10}]
+    (get rank-vals rank)))
+
+(def ^:private sum (partial reduce +))
+
+(def h [{:rank :ace :suit :hearts}
+        {:rank :nine :suit :clubs}
+        {:rank :ace :suit :diamonds}
+        {:rank :ace :suit :clubs}
+        {:rank :five :suit :hearts}
+        {:rank :ace :suit :spaces}])
+
+(defn score [hand]
+  (let [ranks (map :rank hand)
+        [a b c d e f] ranks
+        vals (map golf-value ranks)
+        [a-val b-val c-val d-val e-val f-val] vals]
+    (cond
+      ; outer four match
+      (= a c d f) (sum [b-val e-val -20])
+      ; left four match
+      (= a b d e) (sum [c-val f-val -10])
+      ; right four match
+      (= b c e f) (sum [a-val d-val -10])
+      ; right match
+      (= c f) (sum [a-val b-val d-val e-val])
+      ; middle match
+      (= b e) (sum [a-val c-val d-val f-val])
+      ; left match
+      (= a d) (sum [b-val c-val e-val f-val])
+      :else (sum vals))))

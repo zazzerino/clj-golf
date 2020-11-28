@@ -23,21 +23,21 @@
   ([id]
    (make-user id "anon")))
 
-(defn add-user
+(defn create-user!
   ([ctx id name]
    (let [user (make-user id name)]
      (swap! ctx update-in [:users] conj {id user})
      user))
   ([ctx id]
-   (add-user ctx id "anon")))
+   (create-user! ctx id "anon")))
 
-(defn remove-user [ctx id]
+(defn remove-user! [ctx id]
   (swap! ctx update-in [:users] dissoc id))
 
-(defn login [ctx id name]
+(defn login! [ctx id name]
   (swap! ctx assoc-in [:users id :name] name))
 
-(defn logout [ctx id]
+(defn logout! [ctx id]
   (swap! ctx assoc-in [:users id :name] "anon"))
 
 (defn get-user-by-id [ctx id]
@@ -45,18 +45,18 @@
 
 ;; games
 
-(defn new-game [ctx]
+(defn create-game! [ctx]
   (let [game (game/make-game)]
     (swap! ctx update-in [:games] conj {(:id game) game})
     game))
 
-(defn remove-game [ctx game-id]
+(defn remove-game! [ctx game-id]
   (swap! ctx update-in [:games] dissoc game-id))
 
 (defn get-game-by-id [ctx id]
   (get-in @ctx [:games id]))
 
-(defn join-game [ctx game-id user-id]
+(defn join-game! [ctx game-id user-id]
   (let [user (-> (get-user-by-id ctx user-id)
                  (assoc :game-id game-id))
         game (-> (get-game-by-id ctx game-id)
@@ -66,13 +66,13 @@
                     (assoc-in [:games game-id] game)))
     game))
 
-(defn join-new-game [ctx user-id]
-  (let [game (new-game ctx)
+(defn join-new-game! [ctx user-id]
+  (let [game (create-game! ctx)
         game-id (:id game)]
-    (join-game ctx game-id user-id)
+    (join-game! ctx game-id user-id)
     (get-game-by-id ctx game-id)))
 
-(defn start-game [ctx id]
+(defn start-game! [ctx id]
   (let [game (-> (get-game-by-id ctx id)
                  (game/start-game))]
     (swap! ctx assoc-in [:games id] game)))
@@ -91,3 +91,8 @@
   (let [user-ids (-> @ctx :users keys)
         player-ids (get-player-ids ctx game-id)]
     (not (empty? (set/intersection (set user-ids) (set player-ids))))))
+
+(defn remove-inactive-games! [ctx]
+  (doseq [game-id (-> @ctx :games keys)]
+    (when-not (has-active-players? ctx game-id)
+      (remove-game! ctx game-id))))

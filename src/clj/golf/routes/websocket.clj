@@ -57,38 +57,39 @@
 (defmethod handle-message :chsk/uidport-open
   [{:keys [uid]}]
   (if (manager/get-user-by-id context uid)
-    (manager/remove-user context uid))
-  (manager/add-user context uid)
+    (manager/remove-user! context uid))
+  (manager/create-user! context uid)
   (log/info "uidport open:" uid))
 
 (defmethod handle-message :chsk/uidport-close
   [{:keys [uid]}]
   (if (manager/get-user-by-id context uid)
-    (manager/remove-user context uid)))
+    (manager/remove-user! context uid))
+  (manager/remove-inactive-games! context))
 
 (defmethod handle-message :golf/login
   [{:keys [uid ?reply-fn ?data]}]
   (let [name (:name ?data)]
     (if-let [user (manager/get-user-by-id context uid)]
       (do (log/info "user found:" (pr-str user))
-          (manager/login context uid name)
+          (manager/login! context uid name)
           (if ?reply-fn
-            (?reply-fn {:user (assoc user :name name)})
+            (?reply-fn {:user (manager/get-user-by-id context uid) #_(assoc user :name name)})
             (log/error "no reply-fn in :golf/login msg")))
       (log/error "user not found:" (pr-str uid)))))
 
 (defmethod handle-message :golf/logout
   [{:keys [uid ?reply-fn]}]
-  (if-let [user (manager/get-user-by-id context uid)]
+  (if (manager/get-user-by-id context uid)
     (do (log/info "logging out user:" uid)
-        (manager/logout context uid)
+        (manager/logout! context uid)
         (if ?reply-fn
           (?reply-fn :logged-out)))
     (log/error "user not found: " (pr-str uid))))
 
 (defmethod handle-message :golf/join-new-game
   [{:keys [uid ?reply-fn]}]
-  (let [game (manager/join-new-game context uid)
+  (let [game (manager/join-new-game! context uid)
         games (manager/get-all-games context)]
     (log/info "game created:" (pr-str game))
     (send-to-all! [:golf/games-updated {:games games}])
@@ -104,7 +105,7 @@
 
 (defmethod handle-message :golf/join-game
   [{:keys [uid ?data ?reply-fn]}]
-  (if-let [game (manager/join-game context (:game-id ?data) uid)]
+  (if-let [game (manager/join-game! context (:game-id ?data) uid)]
     (do (send-game-update! context (:game-id ?data))
         (if ?reply-fn
           (?reply-fn {:game game})))))
@@ -113,7 +114,7 @@
   [{:keys [?data]}]
   (let [game-id (:game-id ?data)]
     (if (manager/get-game-by-id context game-id)
-      (do (manager/start-game context game-id)
+      (do (manager/start-game! context game-id)
           (send-game-update! context game-id)))))
 
 (defn receive-message! [{:keys [id] :as message}]

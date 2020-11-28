@@ -1,23 +1,23 @@
 (ns golf.views
-  (:require [reagent.core :as r]
-            [re-frame.core :as rf]
+  (:require [reagent.core :as reagent]
+            [re-frame.core :as re-frame]
             [golf.draw :as draw]
             [golf.websocket :as ws]))
 
 (defn nav-link [uri title page]
   [:a.navbar-item
    {:href   uri
-    :class (when (= page @(rf/subscribe [:common/page])) :is-active)}
+    :class (when (= page @(re-frame/subscribe [:common/page])) :is-active)}
    title])
 
 (defn navbar []
-  (r/with-let [expanded? (rf/subscribe [:navbar-expanded?])]
-              [:nav.navbar.is-info>div.container
+  (reagent/with-let [expanded? (re-frame/subscribe [:navbar-expanded?])]
+                    [:nav.navbar.is-info>div.container
      [:div.navbar-brand
       [:a.navbar-item {:href "/" :style {:font-weight :bold}} "golf"]
       [:span.navbar-burger.burger
        {:data-target :nav-menu
-        :on-click #(do (rf/dispatch [:toggle-navbar-expanded])
+        :on-click #(do (re-frame/dispatch [:toggle-navbar-expanded])
                        (.stopPropagation %))
         :class (when @expanded? :is-active)}
        [:span][:span][:span]]]
@@ -42,8 +42,8 @@
            :on-click on-click}])
 
 (defn login-form []
-  (r/with-let
-    [name (r/atom nil)]
+  (reagent/with-let
+    [name (reagent/atom nil)]
     [:div.login-form
      [:h2 "Login"]
      [user-name-input {:value @name
@@ -76,7 +76,7 @@
                              :on-click #(ws/send-start-game!)}])
 
 (defn game-list []
-  (let [games @(rf/subscribe [:games])]
+  (let [games @(re-frame/subscribe [:games])]
     [:ul.game-list
      (for [game games]
        ^{:key (:id game)}
@@ -100,23 +100,23 @@
 (defn home-page []
   [:div.home-page
    [:h2 "Golf"]
-   (if @(rf/subscribe [:game])
+   (if @(re-frame/subscribe [:game])
      [:div
       [draw/game-canvas]
-      (if-not @(rf/subscribe [:game/started?])
+      (if-not @(re-frame/subscribe [:game/started?])
         [start-game-button])])])
 
 (defn page []
-  (if-let [page @(rf/subscribe [:common/page])]
+  (if-let [page @(re-frame/subscribe [:common/page])]
     [:div
      [navbar]
      [:section.section>div.container>div.content
       [page]
-      (if-let [{:keys [id name]} @(rf/subscribe [:user])]
+      (if-let [{:keys [id name]} @(re-frame/subscribe [:user])]
         [:div
          [info-display name]
          [logout-button id]])
-      (if-let [game @(rf/subscribe [:game])]
+      (if-let [game @(re-frame/subscribe [:game])]
         [:p (-> game
                 (dissoc :deck)
                 (update-in [:players] vals)

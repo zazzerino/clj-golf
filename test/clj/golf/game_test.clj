@@ -164,4 +164,69 @@
       (is (s/valid? ::game/game game1))
       (is (= second-card (:table-card game1)))
       (is (= (-> game0 :deck first) (get-in game1 [:players "id0" :hand 1])))))
+
+  (testing "score"
+    ; outer four matches
+    (let [hand [{:rank :ace :suit :hearts}
+                {:rank :nine :suit :clubs}
+                {:rank :ace :suit :diamonds}
+                {:rank :ace :suit :clubs}
+                {:rank :five :suit :hearts}
+                {:rank :ace :suit :spades}]]
+      (is (= -6 (score hand))))
+
+    ; left four matches
+    (let [hand [{:rank :ace :suit :hearts}
+                {:rank :ace :suit :clubs}
+                {:rank :two :suit :diamonds}
+                {:rank :ace :suit :diamonds}
+                {:rank :ace :suit :spades}
+                {:rank :jack :suit :spaces}]]
+      (is (= 2 (score hand))))
+
+    ; right four matches
+    (let [hand [{:rank :two :suit :hearts}
+                {:rank :nine :suit :clubs}
+                {:rank :nine :suit :diamonds}
+                {:rank :five :suit :clubs}
+                {:rank :nine :suit :hearts}
+                {:rank :nine :suit :spades}]]
+      (is (= -3 (score hand))))
+
+    ; right column matches
+    (let [hand [{:rank :four :suit :hearts}
+                {:rank :nine :suit :clubs}
+                {:rank :ace :suit :diamonds}
+                {:rank :two :suit :clubs}
+                {:rank :five :suit :hearts}
+                {:rank :ace :suit :spades}]]
+      (is (= 20 (score hand))))
+
+    ; middle column matches
+    (let [hand [{:rank :ace :suit :hearts}
+                {:rank :five :suit :clubs}
+                {:rank :seven :suit :diamonds}
+                {:rank :jack :suit :clubs}
+                {:rank :five :suit :hearts}
+                {:rank :ace :suit :spades}]]
+      (is (= 19 (score hand))))
+
+    ; left column matches
+    (let [hand [{:rank :ace :suit :hearts}
+                {:rank :nine :suit :clubs}
+                {:rank :eight :suit :diamonds}
+                {:rank :ace :suit :clubs}
+                {:rank :five :suit :hearts}
+                {:rank :four :suit :spades}]]
+      (is (= 26 (score hand))))
+
+    ; no matches
+    (let [hand [{:rank :ace :suit :hearts}
+                {:rank :nine :suit :clubs}
+                {:rank :two :suit :diamonds}
+                {:rank :three :suit :clubs}
+                {:rank :five :suit :hearts}
+                {:rank :queen :suit :spades}]]
+      (is (= 30 (score hand))))
+    )
   )
