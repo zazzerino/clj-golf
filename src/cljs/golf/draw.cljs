@@ -14,7 +14,8 @@
 (def card-scale-x (/ width 2000))
 (def card-scale-y (/ height 2000))
 
-(def x-spacing (/ width 100))                               ; the space between cards in a hand
+; the space between cards in a hand
+(def x-spacing (/ width 100))
 (def y-spacing (/ height 100))
 
 (defn- remove-children [id]
@@ -100,13 +101,19 @@
 
 (defn on-card-click [texture-name]
   (let [card (texture-name->card texture-name)]
-    (re-frame/dispatch [:card/click card])))
+    (re-frame/dispatch [:game/card-click card])))
 
-(defn make-card-sprite [loader name {:keys [x y angle]
+(defn make-card-sprite [loader name {:keys [x y angle callback]
                                      :or   {x 0 y 0 angle 0}
                                      :as   pos}]
+  #_(let [sprite (pixi/Sprite. (get-texture loader name))]
+    (.set (aget sprite "scale") card-scale-x card-scale-y)
+    (set-pos! sprite pos)
+    ;(aset sprite "interactive" true)
+    ;(.on sprite "click" #(on-card-click name))
+    sprite)
   (doto (pixi/Sprite. (get-texture loader name))
-    (-> .-scale (.set card-scale-x card-scale-y))
+    (-> (aget "scale") (.set card-scale-x card-scale-y))
     (set-pos! pos)
     (aset "interactive" true)
     (.on "click" #(on-card-click name))))
@@ -132,7 +139,6 @@
       (aset "pivot" "y" (/ container.height 2))
       (aset "angle" angle)
       (set-pos! pos))))
-
 
 (defn deck-coord [started?]
   (let [[x y] [(/ width 2)
@@ -191,18 +197,31 @@
     (doseq [[hand pos] (zipmap hands positions)]
       (draw-player-hand loader stage hand pos))))
 
+(defn make-text [text {:keys [coord color font-size]
+                       :or   {coord     {:x 0 :y 0}
+                              color     "limegreen"
+                              font-size 18}}]
+  (let [elem (pixi/Text. text #js{"fontSize" font-size
+                                  "fill"     color})]
+    (.set elem.anchor 0.5 0.5)
+    (set-pos! elem coord)
+    elem))
+
 (defn draw-player-info [game stage]
   (let [positions (hand-positions (-> game :players count))]
     (doseq [[player pos] (zipmap (game/players-by-turn game) positions)]
       (let [score (game/score (:hand player))
             text (str (:name player) ", " score)
-            text-elem (doto (pixi/Text. text #js{"fontSize" 18
-                                                 "fill"     "limegreen"})
-                        (-> .-anchor (.set 0.5 0.5))
-                        (set-pos! (hand-coord pos)))]
+            text-elem (make-text text {:coord (hand-coord pos)})]
         (.addChild stage text-elem)))))
 
-(defn draw-game-info [])
+(defn draw-game-info [game stage]
+  (let [next-player (:name (game/next-player game))
+        text (str "game: " (:id game) "\n"
+                  "next turn: " next-player)
+        text-elem (make-text text {})]
+    (.set text-elem.anchor 0 0)
+    (.addChild stage text-elem)))
 
 (defn draw [id game loader renderer stage turn]
   (remove-children id)
@@ -210,6 +229,7 @@
   (draw-table-card game loader stage)
   (draw-player-hands game loader stage turn)
   (draw-player-info game stage)
+  (draw-game-info game stage)
   (.render renderer stage)
   (attach-view id renderer))
 

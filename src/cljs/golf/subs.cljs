@@ -1,5 +1,6 @@
 (ns golf.subs
-  (:require [re-frame.core :as re-frame]))
+  (:require [re-frame.core :as re-frame]
+            [golf.game :as game]))
 
 (re-frame/reg-sub
   :common/route
@@ -73,6 +74,12 @@
   :<- [:game]
   (fn [game _]
     (:started? game)))
+
+(re-frame/reg-sub
+  :game/next-player
+  :<- [:game]
+  (fn [game _]
+    (:id (game/next-player game))))
 
 (re-frame/reg-sub
   :games

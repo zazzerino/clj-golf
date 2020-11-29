@@ -1,9 +1,8 @@
 (ns golf.websocket
-  (:require [cognitect.transit :as transit]
-            [taoensso.sente :as sente]
+  (:require [taoensso.sente :as sente]
             [mount.core :as mount]
-            [reagent.core :as r]
-            [re-frame.core :as rf]))
+            [reagent.core :as reagent]
+            [re-frame.core :as re-frame]))
 
 (def config {:type :auto
              :wrap-recv-evs? false})
@@ -25,7 +24,7 @@
 (defmethod handle-message :chsk/handshake
   [{:keys [event ?data]} _]
   (if-let [uid (first ?data)]
-    (rf/dispatch [:user/login {:id uid :name "anon"}]))
+    (re-frame/dispatch [:user/login {:id uid :name "anon"}]))
   (.log js/console "Connection established: " (pr-str event)))
 
 (defmethod handle-message :chsk/state
@@ -44,14 +43,14 @@
   [{:keys [?data]} _]
   (println "updating game")
   (if-let [game (:game ?data)]
-    (rf/dispatch [:set-game game])
+    (re-frame/dispatch [:set-game game])
     (println "There was a problem updating game.")))
 
 (defmethod handle-message :golf/games-updated
   [{:keys [?data]} _]
   (println "games updated")
   (if-let [games (:games ?data)]
-    (rf/dispatch [:set-games games])))
+    (re-frame/dispatch [:set-games games])))
 
 (defmethod handle-message :default
   [{:keys [event]} _]
@@ -71,7 +70,7 @@
     4000
     (fn [reply]
       (if (sente/cb-success? reply)
-        (rf/dispatch [:user/login (:user reply)])
+        (re-frame/dispatch [:user/login (:user reply)])
         (println "error: " (pr-str reply))))))
 
 (defn send-logout! []
@@ -79,7 +78,7 @@
     4000
     (fn [reply]
       (if (sente/cb-success? reply)
-        (rf/dispatch [:user/logout])
+        (re-frame/dispatch [:user/logout])
         (println "error: " (pr-str reply))))))
 
 (defn send-join-new-game! []
@@ -87,7 +86,7 @@
     4000
     (fn [reply]
       (if (sente/cb-success? reply)
-        (rf/dispatch [:set-game (:game reply)])
+        (re-frame/dispatch [:set-game (:game reply)])
         (println "error: " (pr-str reply))))))
 
 (defn send-get-games! []
@@ -95,7 +94,7 @@
     4000
     (fn [reply]
       (if (sente/cb-success? reply)
-        (rf/dispatch [:set-games (:games reply)])
+        (re-frame/dispatch [:set-games (:games reply)])
         (println "error: " (pr-str reply))))))
 
 (defn send-join-game! [game-id]
@@ -103,9 +102,9 @@
     4000
     (fn [reply]
       (if (sente/cb-success? reply)
-        (rf/dispatch [:set-game (:game reply)])
+        (re-frame/dispatch [:set-game (:game reply)])
         (println "error: " (pr-str reply))))))
 
 (defn send-start-game! []
-  (let [game-id @(rf/subscribe [:game/id])]
+  (let [game-id @(re-frame/subscribe [:game/id])]
     (send-message! [:golf/start-game {:game-id game-id}])))

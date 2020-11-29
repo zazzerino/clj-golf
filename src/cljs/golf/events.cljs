@@ -78,6 +78,6 @@
     (assoc db :games games)))
 
 (re-frame/reg-event-db
-  :card/click
+  :game/card-click
   (fn [db [_ card]]
     (assoc db :clicked-card card)))

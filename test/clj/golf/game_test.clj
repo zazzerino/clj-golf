@@ -228,4 +228,16 @@
                 {:rank :5 :suit :hearts}
                 {:rank :queen :suit :spades}]]
       (is (= 30 (score hand)))))
+
+  (testing "next-round"
+    (let [p1 (make-player "id0" "name0")
+          p2 (make-player "id1" "name1")
+          g0 (-> (make-game)
+                   (add-players [p1 p2])
+                   (start-game))
+          g1 (player-move g0 "id0" :deck (get-nth-card g0 "id0" 0))
+          g2 (player-move g1 "id1" :table (get-nth-card g1 "id1" 5))]
+      (is (= "id0" (:id (next-player g0))))
+      (is (= "id1" (:id (next-player g1))))
+      (is (= "id0" (:id (next-player g2))))))
   )

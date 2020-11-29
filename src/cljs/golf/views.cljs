@@ -51,9 +51,9 @@
      [login-button {:on-click #(if-let [name @name]
                                  (ws/send-login! name))}]]))
 
-(defn info-display [name]
+(defn info-display [id name]
   [:div.info-display
-   [:p "Logged in as " name]])
+   [:p "Logged in as " name ", id: " id]])
 
 (defn logout-button [user-id]
   [:input.logout-button {:type "button"
@@ -114,7 +114,7 @@
       [page]
       (if-let [{:keys [id name]} @(re-frame/subscribe [:user])]
         [:div
-         [info-display name]
+         [info-display id name]
          [logout-button id]])
       (if-let [game @(re-frame/subscribe [:game])]
         [:p (-> game

@@ -111,6 +111,10 @@
 (defn get-hand [game player-id]
   (get-in game [:players player-id :hand]))
 
+(defn get-nth-card [game player-id n]
+  (-> (get-hand game player-id)
+      (get n)))
+
 (defn take-from-table [game player-id card-to-replace]
   (let [table-card (:table-card game)
         hand (-> (get-hand game player-id)
@@ -184,8 +188,10 @@
       :else (sum vals))))
 
 (defn next-player [game]
-  (->> game
-       players-by-turn
-       cycle
-       (drop (inc (:round game)))
-       first))
+  (if (:started? game)
+    (let [rounds-played (:round game)]
+      (->> game
+           players-by-turn
+           cycle
+           (drop rounds-played)
+           first))))
