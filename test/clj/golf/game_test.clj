@@ -168,65 +168,64 @@
   (testing "score"
     ; outer four matches
     (let [hand [{:rank :ace :suit :hearts}
-                {:rank :nine :suit :clubs}
+                {:rank :9 :suit :clubs}
                 {:rank :ace :suit :diamonds}
                 {:rank :ace :suit :clubs}
-                {:rank :five :suit :hearts}
+                {:rank :5 :suit :hearts}
                 {:rank :ace :suit :spades}]]
       (is (= -6 (score hand))))
 
     ; left four matches
     (let [hand [{:rank :ace :suit :hearts}
                 {:rank :ace :suit :clubs}
-                {:rank :two :suit :diamonds}
+                {:rank :2 :suit :diamonds}
                 {:rank :ace :suit :diamonds}
                 {:rank :ace :suit :spades}
                 {:rank :jack :suit :spaces}]]
       (is (= 2 (score hand))))
 
     ; right four matches
-    (let [hand [{:rank :two :suit :hearts}
-                {:rank :nine :suit :clubs}
-                {:rank :nine :suit :diamonds}
-                {:rank :five :suit :clubs}
-                {:rank :nine :suit :hearts}
-                {:rank :nine :suit :spades}]]
+    (let [hand [{:rank :2 :suit :hearts}
+                {:rank :9 :suit :clubs}
+                {:rank :9 :suit :diamonds}
+                {:rank :5 :suit :clubs}
+                {:rank :9 :suit :hearts}
+                {:rank :9 :suit :spades}]]
       (is (= -3 (score hand))))
 
     ; right column matches
-    (let [hand [{:rank :four :suit :hearts}
-                {:rank :nine :suit :clubs}
+    (let [hand [{:rank :4 :suit :hearts}
+                {:rank :9 :suit :clubs}
                 {:rank :ace :suit :diamonds}
-                {:rank :two :suit :clubs}
-                {:rank :five :suit :hearts}
+                {:rank :2 :suit :clubs}
+                {:rank :5 :suit :hearts}
                 {:rank :ace :suit :spades}]]
       (is (= 20 (score hand))))
 
     ; middle column matches
     (let [hand [{:rank :ace :suit :hearts}
-                {:rank :five :suit :clubs}
-                {:rank :seven :suit :diamonds}
+                {:rank :5 :suit :clubs}
+                {:rank :7 :suit :diamonds}
                 {:rank :jack :suit :clubs}
-                {:rank :five :suit :hearts}
+                {:rank :5 :suit :hearts}
                 {:rank :ace :suit :spades}]]
       (is (= 19 (score hand))))
 
     ; left column matches
     (let [hand [{:rank :ace :suit :hearts}
-                {:rank :nine :suit :clubs}
-                {:rank :eight :suit :diamonds}
+                {:rank :9 :suit :clubs}
+                {:rank :8 :suit :diamonds}
                 {:rank :ace :suit :clubs}
-                {:rank :five :suit :hearts}
-                {:rank :four :suit :spades}]]
+                {:rank :5 :suit :hearts}
+                {:rank :4 :suit :spades}]]
       (is (= 26 (score hand))))
 
     ; no matches
     (let [hand [{:rank :ace :suit :hearts}
-                {:rank :nine :suit :clubs}
-                {:rank :two :suit :diamonds}
-                {:rank :three :suit :clubs}
-                {:rank :five :suit :hearts}
+                {:rank :9 :suit :clubs}
+                {:rank :2 :suit :diamonds}
+                {:rank :3 :suit :clubs}
+                {:rank :5 :suit :hearts}
                 {:rank :queen :suit :spades}]]
-      (is (= 30 (score hand))))
-    )
+      (is (= 30 (score hand)))))
   )

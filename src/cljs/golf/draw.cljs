@@ -9,10 +9,13 @@
 (def width 600)
 (def height 600)
 
-(def card-width 240)
-(def card-height 336)
+(def card-image-width 240)
+(def card-image-height 336)
 (def card-scale-x (/ width 2000))
 (def card-scale-y (/ height 2000))
+
+(def x-spacing (/ width 100))                               ; the space between cards in a hand
+(def y-spacing (/ height 100))
 
 (defn- remove-children [id]
   (let [elem (.getElementById js/document id)]
@@ -20,25 +23,24 @@
       (.removeChild elem child))))
 
 (def ^:private rank-texture-names
-  (zipmap game/ranks
-          ["A" "2" "3" "4" "5" "6" "7" "8" "9" "T" "J" "Q" "K"]))
+  (zipmap game/ranks ["A" "2" "3" "4" "5" "6" "7" "8" "9" "T" "J" "Q" "K"]))
 
 (def ^:private suit-texture-names
   (zipmap game/suits ["C" "D" "H" "S"]))
 
-(defn- texture-name [card]
+(defn card->texture-name [card]
   (let [rank (rank-texture-names (:rank card))
         suit (suit-texture-names (:suit card))]
     (str rank suit)))
 
-(defn- texture-name->card [texture-name]
+(defn texture-name->card [texture-name]
   (let [[rank suit] (seq texture-name)
         ranks (clojure.set/map-invert rank-texture-names)
         suits (clojure.set/map-invert suit-texture-names)]
     {:rank (ranks rank)
      :suit (suits suit)}))
 
-(def ^:private card-files
+(def card-files
   ; downloaded from www.me.uk/cards, copyright Adrian Kennard
   ["img/cards/svg/1B.svg", "img/cards/svg/2J.svg", "img/cards/svg/4C.svg",
    "img/cards/svg/5H.svg", "img/cards/svg/7C.svg", "img/cards/svg/8H.svg",
@@ -66,17 +68,14 @@
                       "height"          height
                       "backgroundColor" background-color}))
 
-(defn card-name [filename]
-  (-> (string/split filename "/")
-      last
-      (string/split ".")
-      first))
+(defn texture-name [filename]
+  (last (re-matches #"(.+)*/(.+)\.svg$" filename)))
 
 (defn texture-loaded? [loader name]
-  (aget loader.resources name))
+  (aget loader "resources" name))
 
 (defn load-card-texture [loader filename]
-  (let [name (card-name filename)]
+  (let [name (texture-name filename)]
     (if-not (texture-loaded? loader name)
       (.add loader name filename))))
 
@@ -86,62 +85,90 @@
   (.load loader))
 
 (defn attach-view [id renderer]
-  (-> (js/document.getElementById id)
+  (-> (.getElementById js/document id)
       (.appendChild renderer.view)))
 
 (defn get-texture [loader name]
-  (-> (aget loader.resources name) .-texture))
+  (aget loader "resources" name "texture"))
 
 (defn set-pos! [sprite {:keys [x y angle]
                         :or   {x 0 y 0 angle 0}}]
-  (set! sprite.x x)
-  (set! sprite.y y)
-  (set! sprite.angle angle)
-  sprite)
+  (doto sprite
+    (aset "x" x)
+    (aset "y" y)
+    (aset "angle" angle)))
 
-(defn on-card-click [name]
-  (let [card (texture-name->card name)]
+(defn on-card-click [texture-name]
+  (let [card (texture-name->card texture-name)]
     (re-frame/dispatch [:card/click card])))
 
 (defn make-card-sprite [loader name {:keys [x y angle]
-                                     :or   {x 0 y 0 angle 0}}]
-  (let [sprite (pixi/Sprite. (get-texture loader name))]
-    (set-pos! sprite {:x x :y y :angle angle})
-    (.set sprite.scale card-scale-x card-scale-y)
-    (set! sprite.interactive true)
-    (.on sprite "click" #(on-card-click name))
-    sprite))
+                                     :or   {x 0 y 0 angle 0}
+                                     :as   pos}]
+  (doto (pixi/Sprite. (get-texture loader name))
+    (-> .-scale (.set card-scale-x card-scale-y))
+    (set-pos! pos)
+    (aset "interactive" true)
+    (.on "click" #(on-card-click name))))
+
+(defn card-coord [i]
+  (let [x (-> (* card-image-width card-scale-x)
+              (+ x-spacing)
+              (* (mod i 3)))
+        y (if (< i 3)
+            0
+            (-> (* card-image-height card-scale-y) (+ y-spacing)))]
+    {:x x :y y}))
 
 (defn make-hand-container [loader cards {:keys [x y x-spacing y-spacing angle]
-                                         :or   {x 0 y 0 x-spacing 5 y-spacing 5 angle 0}}]
+                                         :or   {x 0 y 0 x-spacing 5 y-spacing 5 angle 0}
+                                         :as   pos}]
   (let [container (pixi/Container.)]
     (doseq [[i card] (map-indexed vector cards)]
-      (let [x (-> (* card-width card-scale-x) (+ x-spacing) (* (mod i 3)))
-            y (if (< i 3)
-                0
-                (-> (* card-height card-scale-y) (+ y-spacing)))
-            card-sprite (make-card-sprite loader
-                                          (texture-name card)
-                                          {:x x :y y})]
+      (let [card-sprite (make-card-sprite loader (card->texture-name card) (card-coord i))]
         (.addChild container card-sprite)))
-    (set-pos! container {:x x :y y})
-    (set! container.pivot.x (/ container.width 2))
-    (set! container.pivot.y (/ container.height 2))
-    (set! container.angle angle)
-    container))
+    (doto container
+      (aset "pivot" "x" (/ container.width 2))
+      (aset "pivot" "y" (/ container.height 2))
+      (aset "angle" angle)
+      (set-pos! pos))))
+
+
+(defn deck-coord [started?]
+  (let [[x y] [(/ width 2)
+               (/ height 2)]
+        x (if-not started? x (- x (* 0.5 card-image-width card-scale-x)))]
+    {:x x :y y}))
+
+(defn draw-deck [game loader stage]
+  (let [sprite (make-card-sprite loader "2B" (deck-coord (:started? game)))]
+    (.set sprite.anchor 0.5 0.5)
+    (.addChild stage sprite)))
+
+(def table-card-coord
+  {:x (+ (/ width 2)
+         (* (/ 1 2) card-scale-x card-image-width)
+         2)
+   :y (/ height 2)})
+
+(defn draw-table-card [game loader stage]
+  (if-let [table-card (:table-card game)]
+    (let [sprite (make-card-sprite loader (card->texture-name table-card) table-card-coord)]
+      (.set sprite.anchor 0.5 0.5)
+      (.addChild stage sprite))))
 
 (defn hand-coord [pos]
   (case pos
     :bottom {:x     (/ width 2)
-             :y     (- height (* 1.1 card-height card-scale-y))
+             :y     (- height (* 1.1 card-image-height card-scale-y))
              :angle 0}
-    :left {:x     (* 1.5 card-width card-scale-x)
+    :left {:x     (* 1.5 card-image-width card-scale-x)
            :y     (/ height 2)
            :angle 90}
     :top {:x     (/ width 2)
-          :y     (* 1.1 card-height card-scale-y)
+          :y     (* 1.1 card-image-height card-scale-y)
           :angle 180}
-    :right {:x     (- width (* 1.5 card-width card-scale-x))
+    :right {:x     (- width (* 1.5 card-image-width card-scale-x))
             :y     (/ height 2)
             :angle 270}))
 
@@ -158,54 +185,38 @@
     (set-pos! container coord)
     (.addChild stage container)))
 
-(defn draw-player-hands [loader stage game turn]
+(defn draw-player-hands [game loader stage turn]
   (let [hands (game/hands-starting-at-turn game turn)
         positions (hand-positions (count (:players game)))]
     (doseq [[hand pos] (zipmap hands positions)]
       (draw-player-hand loader stage hand pos))))
 
-(defn draw-deck [loader stage]
-  (let [sprite (make-card-sprite loader "2B" {:x (- (/ width 2)
-                                                    (* 0.5
-                                                       card-scale-x
-                                                       card-width)
-                                                    2)
-                                              :y (/ height 2)})]
-    (.set sprite.anchor 0.5 0.5)
-    (.addChild stage sprite)))
-
-(defn draw-table-card [loader stage game]
-  (if-let [table-card (:table-card game)]
-    (let [sprite (make-card-sprite loader (texture-name table-card)
-                                   {:x (+ (/ width 2)
-                                          (* (/ 1 2) card-scale-x card-width)
-                                          2)
-                                    :y (/ height 2)})]
-      (.set sprite.anchor 0.5 0.5)
-      (.addChild stage sprite))))
-
-(defn draw-names [stage game]
+(defn draw-player-info [game stage]
   (let [positions (hand-positions (-> game :players count))]
     (doseq [[player pos] (zipmap (game/players-by-turn game) positions)]
-      (let [text (pixi/Text. (:name player) #js{"fontSize" 18
-                                                "fill" "limegreen"})]
-        (set-pos! text (hand-coord pos))
-        (.set text.anchor 0.5 0.5)
-        (.addChild stage text)))))
+      (let [score (game/score (:hand player))
+            text (str (:name player) ", " score)
+            text-elem (doto (pixi/Text. text #js{"fontSize" 18
+                                                 "fill"     "limegreen"})
+                        (-> .-anchor (.set 0.5 0.5))
+                        (set-pos! (hand-coord pos)))]
+        (.addChild stage text-elem)))))
+
+(defn draw-game-info [])
 
 (defn draw [id game loader renderer stage turn]
   (remove-children id)
-  (draw-deck loader stage)
-  (draw-table-card loader stage game)
-  (draw-player-hands loader stage game turn)
-  (draw-names stage game)
+  (draw-deck game loader stage)
+  (draw-table-card game loader stage)
+  (draw-player-hands game loader stage turn)
+  (draw-player-info game stage)
   (.render renderer stage)
   (attach-view id renderer))
 
 (defn init-graphics [id game loader renderer stage turn]
   (load-card-textures loader)
-  (-> loader.onComplete (.add #(do (println "textures loaded")
-                                   (draw id game loader renderer stage turn)))))
+  (.add loader.onComplete #(do (println "textures loaded")
+                               (draw id game loader renderer stage turn))))
 
 (defn game-canvas []
   (let [id "game-canvas"

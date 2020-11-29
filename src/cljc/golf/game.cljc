@@ -29,7 +29,7 @@
                       :opt-un [::table-card ::round ::started?]))
 
 (defn- gen-uuid []
-  #?(:clj (str (UUID/randomUUID))
+  #?(:clj  (str (UUID/randomUUID))
      :cljs (str (random-uuid))))
 
 (defn make-deck []
@@ -44,16 +44,16 @@
 
 (defn make-player
   ([id name]
-   {:id id
+   {:id   id
     :name name
     :hand []})
   ([id]
    (make-player id "anon")))
 
 (defn make-game []
-  {:id (gen-uuid)
+  {:id      (gen-uuid)
    :players {}
-   :deck (make-deck)})
+   :deck    (make-deck)})
 
 (defn add-player [game player]
   (let [turn (-> game :players count)
@@ -61,10 +61,7 @@
     (update-in game [:players] conj {(:id player) player})))
 
 (defn add-players [game players]
-  (reduce (fn [game player]
-            (add-player game player))
-          game
-          players))
+  (reduce add-player game players))
 
 (defn give-card [player card]
   (update-in player [:hand] conj card))
@@ -73,7 +70,8 @@
   (let [{:keys [card deck]} (deal-card (:deck game))
         player (-> (get (:players game) player-id)
                    (give-card card))]
-    (-> (assoc-in game [:players player-id] player)
+    (-> game
+        (assoc-in [:players player-id] player)
         (assoc :deck deck))))
 
 (defn deal-starting-hands [game]
@@ -147,29 +145,22 @@
       (shift turn)))
 
 (defn golf-value [rank]
-  (let [rank-vals {:king 0
-                   :ace 1
-                   :two 2
-                   :three 3
-                   :four 4
-                   :five 5
-                   :six 6
-                   :seven 7
-                   :eight 8
-                   :nine 9
-                   :ten 10
-                   :jack 10
+  (let [rank-vals {:king  0
+                   :ace   1
+                   :2     2
+                   :3     3
+                   :4     4
+                   :5     5
+                   :6     6
+                   :7     7
+                   :8     8
+                   :9     9
+                   :10    10
+                   :jack  10
                    :queen 10}]
     (get rank-vals rank)))
 
 (def ^:private sum (partial reduce +))
-
-(def h [{:rank :ace :suit :hearts}
-        {:rank :nine :suit :clubs}
-        {:rank :ace :suit :diamonds}
-        {:rank :ace :suit :clubs}
-        {:rank :five :suit :hearts}
-        {:rank :ace :suit :spaces}])
 
 (defn score [hand]
   (let [ranks (map :rank hand)
@@ -189,4 +180,12 @@
       (= b e) (sum [a-val c-val d-val f-val])
       ; left match
       (= a d) (sum [b-val c-val e-val f-val])
+      ; no match, just sum the vals
       :else (sum vals))))
+
+(defn next-player [game]
+  (->> game
+       players-by-turn
+       cycle
+       (drop (inc (:round game)))
+       first))
